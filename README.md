@@ -70,11 +70,17 @@ source .venv/bin/activate
 
 ## Demo screenshots
 
-If the network dies, these are the two beats.
+If the network dies, these are the beats.
 
-![Globe of NASA landing areas, Jezero selected](docs/hackathon/demo/01-globe.png)
+![Globe of NASA landing areas](docs/hackathon/demo/01-globe.png)
 
-![Inspect view with MOLA terrain and the site report](docs/hackathon/demo/02-inspect.png)
+![Jezero crater zoomed on the globe](docs/hackathon/demo/03-jezero-crater.png)
+
+![Flat Viking map of the same NASA pins](docs/hackathon/demo/04-map-2d.png)
+
+![Inspect view with the buried habitat on Jezero](docs/hackathon/demo/02-inspect.png)
+
+![Wider MOLA patch so the crater rims read](docs/hackathon/demo/05-inspect-wide.png)
 
 ## Three minutes on stage
 

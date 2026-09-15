@@ -49,7 +49,7 @@ export const SiteMark = ({
       aria-label={`Inspect ${name}${recommended ? ", recommended" : ""}. ${coords}. ${fact}`}
       aria-pressed={selected}
       className={cn(
-        "group relative pointer-events-auto inline-flex items-center gap-1 rounded-full text-[10px] leading-tight",
+        "group relative pointer-events-auto inline-flex items-center gap-1 whitespace-nowrap rounded-full text-[10px] leading-tight",
         compact ? "size-6 justify-center p-0" : "px-1.5 py-0.5",
         recommended
           ? "bg-stone-950/90 text-[#fff6ea] ring-2 ring-teal-300"
