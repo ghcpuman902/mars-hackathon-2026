@@ -61,3 +61,6 @@ data/raw/official-packs/extracted/
 data/processed/
 public/data/swim_*.png
 public/cesium/
+
+# organiser pack source clone (ml/settlement/fetch_packs.py)
+data/raw/official-packs/source/

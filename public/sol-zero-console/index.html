@@ -1,0 +1,435 @@
+<meta charset="utf-8">
+<title>Sol Zero Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@600;800&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root{
+    --soot:#0B0908; --panel:#16110E; --panel2:#1F1712; --line:#3A2A20;
+    --rust:#8A3A1C; --ochre:#FF7A1A; --cyan:#3DF2E0; --alarm:#FF3B5C;
+    --bone:#EDE3D2; --dim:#9C8B7A; --ok:#8CE07A;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--soot);color:var(--bone);font-family:"Archivo","Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.5;overflow:hidden;padding-inline:0}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  #stars{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+  .crt{position:fixed;inset:0;z-index:5;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.18) 2px 3px);
+    mix-blend-mode:multiply}
+  .vignette{position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+
+  /* HUD */
+  .hud{position:fixed;left:0;right:0;top:0;z-index:6;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;padding:14px clamp(16px,3vw,36px);
+    font-family:"JetBrains Mono",Consolas,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .hud .sol{font-family:"Big Shoulders Stencil Display","Impact",sans-serif;font-weight:800;font-size:34px;letter-spacing:.04em;color:var(--ochre);line-height:1;font-variant-numeric:tabular-nums}
+  .hud .sol small{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;color:var(--dim);font-weight:400;margin-top:2px}
+  .rail{position:relative;height:22px;display:flex;align-items:center}
+  .rail::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+  .rail .fill{position:absolute;left:0;top:50%;height:1px;background:var(--ochre);box-shadow:0 0 8px var(--ochre);transition:width .5s ease}
+  .rail .dot{position:absolute;top:50%;width:8px;height:8px;transform:translate(-50%,-50%) rotate(45deg);background:var(--soot);border:1px solid var(--line);transition:all .3s}
+  .rail .dot.done{background:var(--ochre);border-color:var(--ochre)}
+  .rail .dot.cur{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 10px var(--cyan);width:11px;height:11px}
+  .rail .dot.storm{border-color:var(--alarm)}
+  .rail .dot.storm.done{background:var(--alarm);border-color:var(--alarm)}
+  .phase{text-align:right;white-space:nowrap}
+  .phase b{display:block;color:var(--bone);font-weight:600}
+
+  .foot{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:space-between;gap:12px;padding:12px clamp(16px,3vw,36px);
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .foot kbd{border:1px solid var(--line);padding:1px 6px;border-radius:2px;color:var(--bone);font:inherit}
+  .foot .nav{display:flex;gap:8px}
+  .foot .nav button{border:1px solid var(--line);padding:4px 12px;letter-spacing:.14em;color:var(--bone);font-family:inherit;font-size:10.5px;text-transform:uppercase}
+  .foot .nav button:hover{border-color:var(--ochre);color:var(--ochre)}
+
+  /* STAGE */
+  .stage{position:fixed;inset:0;z-index:2;display:grid;place-items:center;padding:78px clamp(16px,3vw,36px) 52px}
+  .slide{width:min(1240px,100%);height:100%;display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(16px,2.5vw,36px);opacity:0;pointer-events:none;position:absolute;inset:78px clamp(16px,3vw,36px) 52px;margin:auto;max-width:1240px;transition:opacity .45s ease,transform .45s ease;transform:translateX(24px)}
+  .slide.on{opacity:1;pointer-events:auto;transform:none}
+  .slide.off-l{transform:translateX(-24px)}
+  .viz{position:relative;min-height:0;border:1px solid var(--line);background:linear-gradient(180deg,rgba(22,17,14,.85),rgba(11,9,8,.85));overflow:hidden}
+  .viz canvas{position:absolute;inset:0;width:100%;height:100%}
+  .viz .tag{position:absolute;left:12px;top:10px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+  .viz .tag::before{content:"■ ";animation:blink 1.4s steps(2) infinite}
+  @keyframes blink{50%{opacity:.2}}
+  .viz .ctl{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:12px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--dim);letter-spacing:.08em}
+  .viz input[type=range]{flex:1;accent-color:var(--ochre)}
+  .viz .ctl output{color:var(--cyan);font-weight:600;min-width:64px;text-align:right}
+
+  .console{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .q{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ochre)}
+  h2{font-family:"Big Shoulders Stencil Display","Impact",sans-serif;font-weight:800;font-size:clamp(34px,4.2vw,56px);line-height:.92;margin:4px 0 0;letter-spacing:.01em;text-wrap:balance;text-transform:uppercase}
+  h2.glitch{animation:glitch .5s steps(2) 1}
+  @keyframes glitch{0%{transform:translate(2px,0);text-shadow:-3px 0 var(--cyan),3px 0 var(--alarm)}50%{transform:translate(-2px,0);text-shadow:3px 0 var(--cyan),-3px 0 var(--alarm)}100%{transform:none;text-shadow:none}}
+  .brief{max-width:60ch;margin:0;color:var(--bone)}
+  .brief.typed{white-space:pre-wrap}
+
+  .fork{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{text-align:left;border:1px solid var(--line);background:var(--panel);padding:12px 14px;position:relative;transition:border-color .2s,background .2s}
+  .opt::before{content:attr(data-key);position:absolute;right:10px;top:8px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--dim);border:1px solid var(--line);padding:0 5px}
+  .opt b{display:block;font-weight:600;font-size:14.5px;margin-bottom:4px;padding-right:28px}
+  .opt span{font-size:13px;color:var(--dim)}
+  .opt:hover{border-color:var(--ochre)}
+  .opt.pick{border-color:var(--ochre);background:rgba(255,122,26,.10);box-shadow:0 0 0 1px var(--ochre) inset}
+  .opt.bad{border-color:var(--alarm);background:rgba(255,59,92,.08)}
+  .opt.dimmed{opacity:.55}
+  .verdict{border-left:3px solid var(--ochre);background:var(--panel);padding:10px 14px;font-size:14px;display:none}
+  .verdict.show{display:block;animation:in .35s ease}
+  .verdict.bad{border-color:var(--alarm)}
+  .verdict .lbl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ochre);display:block;margin-bottom:4px}
+  .verdict.bad .lbl{color:var(--alarm)}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 14px;border-top:1px solid var(--line);padding-top:12px}
+  .fig b{display:block;font-family:"JetBrains Mono",monospace;font-weight:600;font-size:19px;line-height:1.1;color:var(--cyan);font-variant-numeric:tabular-nums;text-shadow:0 0 12px rgba(61,242,224,.35)}
+  .fig span{font-size:12px;color:var(--dim);display:block;line-height:1.3;margin-top:2px}
+  .src{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px 2px 6px;border:1px solid var(--line);background:var(--panel2)}
+  .chip::before{content:"";width:7px;height:7px;background:var(--dim)}
+  .chip.a::before{background:var(--ochre)} .chip.b::before{background:#8FA3E0} .chip.c::before{background:var(--ok)} .chip.d::before{background:var(--cyan)} .chip.x::before{background:var(--dim)}
+  .note{font-size:12.5px;color:var(--dim)} .note code{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--bone)}
+  .caveat{font-size:12.5px;color:var(--alarm)} .caveat::before{content:"⚠ "}
+  .advance{align-self:flex-start;border:1px solid var(--ochre);color:var(--ochre);padding:10px 18px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;transition:all .2s;opacity:.45}
+  .advance.ready{opacity:1;box-shadow:0 0 18px rgba(255,122,26,.35)}
+  .advance.ready:hover{background:var(--ochre);color:var(--soot)}
+
+  /* title & end */
+  .slide.full{grid-template-columns:1fr}
+  .title{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:18px;padding:0 clamp(8px,4vw,64px)}
+  .title h1{font-family:"Big Shoulders Stencil Display","Impact",sans-serif;font-weight:800;font-size:clamp(64px,13vw,190px);line-height:.85;margin:0;text-transform:uppercase;letter-spacing:.01em;color:var(--bone)}
+  .title h1 em{font-style:normal;color:var(--ochre);text-shadow:0 0 30px rgba(255,122,26,.5)}
+  .title p{max-width:58ch;color:var(--dim);font-size:17px;margin:0}
+  .pre{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line)}
+  .pre div{background:var(--panel);padding:10px 16px;min-width:150px}
+  .pre b{display:block;font-family:"Big Shoulders Stencil Display",sans-serif;font-weight:800;font-size:30px;line-height:1;color:var(--cyan)}
+  .pre span{font-size:11.5px;color:var(--dim);font-family:"JetBrains Mono",monospace;letter-spacing:.06em}
+  .big{border:1px solid var(--ochre);color:var(--ochre);padding:14px 26px;font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.22em;text-transform:uppercase;box-shadow:0 0 22px rgba(255,122,26,.3)}
+  .big:hover{background:var(--ochre);color:var(--soot)}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);overflow:auto;min-height:0}
+  .cmp div{background:var(--panel);padding:18px 22px}
+  .cmp h3{font-family:"Big Shoulders Stencil Display",sans-serif;font-weight:800;font-size:30px;margin:0 0 10px;text-transform:uppercase;line-height:1}
+  .cmp h3.no{color:var(--alarm)} .cmp h3.yes{color:var(--ok)}
+  .cmp ul{margin:0;padding-left:18px} .cmp li{margin-bottom:9px;font-size:14px} .cmp li b{font-weight:600;color:var(--bone)}
+  .cmp li{opacity:0;animation:in .4s ease forwards}
+  .end{display:flex;flex-direction:column;gap:20px;min-height:0}
+
+  @media (max-width:860px){
+    .slide{grid-template-columns:1fr;grid-template-rows:38vh 1fr;inset:70px 16px 48px}
+    .hud{grid-template-columns:auto 1fr;gap:12px} .phase{display:none}
+    .fork{grid-template-columns:1fr} .cmp{grid-template-columns:1fr}
+    h2{font-size:30px}
+  }
+  @media (max-height:640px){
+    .stage{overflow:auto;display:block;padding:70px 16px 48px}
+    .slide{position:static;inset:auto;display:none;height:auto;grid-template-rows:320px auto;margin:0 auto}
+    .slide.on{display:grid}
+    .viz{min-height:320px}
+    .console{overflow:visible}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+
+<canvas id="stars"></canvas>
+<div class="vignette"></div><div class="crt"></div>
+
+<div class="hud">
+  <div class="sol" id="hudSol">SOL −700<small id="hudWhere">Earth · planning</small></div>
+  <div class="rail" id="rail"><div class="fill" id="railFill"></div></div>
+  <div class="phase"><span>Phase</span><b id="hudPhase">Before anything launches</b></div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<div class="foot">
+  <div><kbd>←</kbd> <kbd>→</kbd> stops · <kbd>1</kbd> <kbd>2</kbd> choose · <kbd>space</kbd> advance</div>
+  <div class="nav"><button id="prevBtn">◀ Back</button><button id="nextBtn">Next ▶</button></div>
+</div>
+
+<script src="marsdata.js"></script>
+<script>
+(() => {
+const $ = (s, r=document) => r.querySelector(s);
+const C = { soot:'#0B0908', panel:'#16110E', line:'#3A2A20', rust:'#8A3A1C', ochre:'#FF7A1A', cyan:'#3DF2E0', alarm:'#FF3B5C', bone:'#EDE3D2', dim:'#9C8B7A', ok:'#8CE07A' };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- starfield ---------- */
+const sc = $('#stars'), sx = sc.getContext('2d');
+let stars = [], dust = [], mx = 0, my = 0;
+function sizeStars(){ sc.width = innerWidth*devicePixelRatio; sc.height = innerHeight*devicePixelRatio; sx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  stars = Array.from({length:260},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,z:Math.random(),tw:Math.random()*6.28}));
+  dust = Array.from({length:70},()=>({x:Math.random()*innerWidth,y:innerHeight*0.6+Math.random()*innerHeight*0.4,s:1+Math.random()*2,v:0.2+Math.random()*0.6}));}
+addEventListener('resize', sizeStars); sizeStars();
+addEventListener('mousemove', e=>{mx=(e.clientX/innerWidth-.5); my=(e.clientY/innerHeight-.5);});
+let stormLevel = 0; // 0..1 haze from current slide
+function drawStars(t){
+  const w=innerWidth,h=innerHeight; sx.clearRect(0,0,w,h);
+  for(const s of stars){ const px=s.x+mx*30*s.z, py=s.y+my*18*s.z; const a=0.25+0.6*s.z*(0.6+0.4*Math.sin(t/900+s.tw)); sx.fillStyle=`rgba(237,227,210,${a*(1-stormLevel*0.85)})`; sx.fillRect(px,py,s.z>0.8?2:1,s.z>0.8?2:1); }
+  // horizon
+  const g=sx.createLinearGradient(0,h*0.72,0,h); g.addColorStop(0,'rgba(138,58,28,0)'); g.addColorStop(1,`rgba(138,58,28,${0.35+stormLevel*0.5})`); sx.fillStyle=g; sx.fillRect(0,h*0.72,w,h*0.28);
+  sx.fillStyle=`rgba(255,122,26,${0.05+stormLevel*0.12})`;
+  for(const d of dust){ d.x+= d.v*(1+stormLevel*6); if(d.x>w+10) d.x=-10; sx.fillRect(d.x,d.y,d.s,d.s); }
+  if(stormLevel>0){ sx.fillStyle=`rgba(138,58,28,${stormLevel*0.25})`; sx.fillRect(0,0,w,h); }
+}
+
+/* ---------- helpers ---------- */
+const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function line(ctx, pts, color, wdt=1.5, glow=false){ ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.strokeStyle=color; ctx.lineWidth=wdt; if(glow){ctx.shadowColor=color;ctx.shadowBlur=10;} ctx.stroke(); ctx.shadowBlur=0; }
+function mono(ctx,size=11){ ctx.font=`${size}px "JetBrains Mono", monospace`; }
+function disp(ctx,size=28){ ctx.font=`800 ${size}px "Big Shoulders Stencil Display", Impact, sans-serif`; }
+function txt(ctx,s,x,y,color=C.dim,align='left'){ ctx.fillStyle=color; ctx.textAlign=align; ctx.fillText(s,x,y); }
+function series(ctx, arr, x0,y0,w,h, ymin,ymax, color, upto=arr.length, glow=true){
+  const pts=[]; for(let i=0;i<Math.min(upto,arr.length);i++){ pts.push([x0+i/(arr.length-1)*w, y0+h-(arr[i]-ymin)/(ymax-ymin)*h]); } if(pts.length>1) line(ctx,pts,color,1.6,glow); return pts; }
+function stormBand(ctx,x0,y0,w,h,n=730){ ctx.fillStyle='rgba(255,59,92,.10)'; ctx.fillRect(x0+180/(n-1)*w,y0,80/(n-1)*w,h); ctx.strokeStyle='rgba(255,59,92,.5)'; ctx.setLineDash([3,3]); ctx.strokeRect(x0+180/(n-1)*w,y0,80/(n-1)*w,h); ctx.setLineDash([]); }
+function frame(ctx,w,h){ ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.strokeRect(0.5,0.5,w-1,h-1); }
+function counter(el, target, dur=900, fmt=v=>Math.round(v).toLocaleString()){ const t0=performance.now(); const from=parseFloat(el.dataset.v||0); const step=n=>{const k=reduced?1:Math.min(1,(n-t0)/dur); const e=1-Math.pow(1-k,3); el.textContent=fmt(from+(target-from)*e); if(k<1) requestAnimationFrame(step); else el.dataset.v=target;}; requestAnimationFrame(step); }
+
+/* ---------- Dijkstra on terrain grid (for slide 3) ---------- */
+function dijkstra(costArr, hazArr, N, s, g, hazW){
+  const dist=new Float64Array(N*N).fill(1e18), prev=new Int32Array(N*N).fill(-1), done=new Uint8Array(N*N);
+  dist[s]=0; for(let it=0;it<N*N;it++){ let u=-1,b=1e18; for(let i=0;i<N*N;i++) if(!done[i]&&dist[i]<b){b=dist[i];u=i;} if(u<0||u===g) break; done[u]=1; const ux=u%N,uy=(u/N)|0;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){ const vx=ux+dx,vy=uy+dy; if(vx<0||vy<0||vx>=N||vy>=N) continue; const v=vy*N+vx; const step=(Math.abs(dx)+Math.abs(dy)===2?28.3:20); const c=step*(costArr[v]+hazW*hazArr[v]*10); if(dist[u]+c<dist[v]){dist[v]=dist[u]+c;prev[v]=u;} } }
+  const path=[]; for(let v=g;v>=0;v=prev[v]) path.push(v); return {path:path.reverse(), cost:dist[g]};
+}
+let routeCache=null;
+
+/* ---------- slide definitions ---------- */
+const S = [
+{ kind:'title', sol:-700, where:'Earth · planning', phase:'Before anything launches' },
+{ sol:-700, where:'Earth · planning', phase:'Before anything launches', q:'Decision 1 · Site', h:'Sunlight at the equator, or water at mid-latitude?',
+  brief:'Robots launch first and they land where the city will stand forever. The pack\'s weather site sits at 18.4° N. Ice does not.',
+  opts:[{t:'Jezero band, 18° N',d:'Warmest, best solar, landing heritage. No shallow ice.',ok:false,v:'Rejected. Every tonne of shielding water, propellant and construction water is shipped from Earth or trucked from 40° N. Life support alone needs 28 kg a day forever.'},
+        {t:'Mid-latitude ice, 35–45° N',d:'Colder and darker, but buried ice within reach of a drill.',ok:true,v:'Chosen. Solar drops a few percent, temperature a few degrees. Water becomes open-ended. The pack\'s 18° N series is now a warm bound for everything downstream.'}],
+  figs:[['3.49 kWh/m²','per sol on a flat panel, clear sols at 18.4° N'],['−55 °C','clear-sol mean at the pack site'],['28 kg/day','water for makeup plus O₂ electrolysis']],
+  src:[['a','Pack A'],['c','Pack C'],['x','External prior']], note:'Solar and temperature from <code>emars_settlement_hourly_730sol.csv</code>; makeup from <code>net_water_makeup_kg</code> and <code>net_o2_makeup_kg</code>. Ice depth versus latitude is a NASA SWIM prior, not in the packs.',
+  tag:'latitude trade · solar vs ice',
+  draw(ctx,w,h,t){ const pad=40; const x0=pad,x1=w-pad,y=h*0.5; // latitude axis 0..60
+    mono(ctx,10); for(let L=0;L<=60;L+=10){const x=lerp(x0,x1,L/60); ctx.strokeStyle=C.line; line(ctx,[[x,y-90],[x,y+90]],C.line,1); txt(ctx,L+'°N',x,y+112,C.dim,'center');}
+    // solar curve ~ cos(lat)
+    const sp=[],ip=[]; for(let i=0;i<=60;i++){const x=lerp(x0,x1,i/60); sp.push([x,y-Math.cos(i*Math.PI/180)*80]); const ice=clamp((i-30)/15,0,1); ip.push([x,y+80-ice*140]);}
+    line(ctx,sp,C.ochre,2,true); line(ctx,ip,C.cyan,2,true);
+    txt(ctx,'SOLAR YIELD',x1,y-95,C.ochre,'right'); txt(ctx,'ICE WITHIN DRILL REACH',x1,y+95,C.cyan,'right');
+    const k=(t/2400)%1; const lat=18.4+(40-18.4)*(0.5-0.5*Math.cos(k*6.28)); const xs=lerp(x0,x1,lat/60);
+    ctx.setLineDash([4,4]); line(ctx,[[xs,y-100],[xs,y+100]],C.bone,1); ctx.setLineDash([]);
+    disp(ctx,26); txt(ctx,lat.toFixed(1)+'° N',xs,y-108,C.bone,'center');
+    mono(ctx,10); txt(ctx,'solar '+(3.49*Math.cos(lat*Math.PI/180)/Math.cos(18.4*Math.PI/180)).toFixed(2)+' kWh/m²/sol',xs+8,y-60,C.ochre); txt(ctx,'ice '+(lat<30?'none':lat<40?'patchy':'yes')+'',xs+8,y+70,C.cyan);
+    ctx.fillStyle=C.ochre; ctx.fillRect(lerp(x0,x1,18.4/60)-3,y+126,6,6); txt(ctx,'pack site',lerp(x0,x1,18.4/60)+10,y+132,C.dim); }
+},
+{ sol:0, where:'Robot landing', phase:'Robots land, no crew', q:'Decision 2 · Power', h:'Solar and batteries, or a reactor?',
+  brief:'The storm cuts panel output about thirty times, not the four times the life-support table assumes. First cargo down decides whether anyone survives sol 180.',
+  opts:[{t:'Solar + batteries',d:'Simple, no nuclear cargo. Must ride out 81 sols of storm.',ok:false,v:'Rejected. Bridging 81 sols at 1.1 MW needs 2,200 MWh. At 150 Wh/kg that is about 15,000 t of cells, more than the whole manifest.'},
+        {t:'Fission baseload + solar',d:'Reactor carries life support and heat; panels feed greenhouse and industry when the sky is clear.',ok:true,v:'Chosen. Reactor and radiators land first. Panels are sized for clear-sky surplus, not survival.'}],
+  figs:[['0.11 kWh/m²','per sol in storm, versus 3.49 clear'],['2,200 MWh','to bridge 81 storm sols at 1.1 MW'],['~15,000 t','battery mass at 150 Wh/kg']],
+  src:[['a','Pack A'],['c','Pack C'],['d','Derived']], note:'Optical depth from <code>dust_optical_depth</code> (0.18 clear, 3.15 storm) through a Beer–Lambert sky model. Pack C\'s flat <code>solar_availability = 0.25</code> is the optimistic case.', cav:'Pack C\'s 0.25 storm factor is a coarse switch, per KNOWN_ISSUES.',
+  tag:'solar energy on a flat panel · 730 sols', storm:0.15,
+  draw(ctx,w,h,t){ const x0=44,y0=36,W=w-70,H=h-96; const up=Math.min(730,Math.floor((t/4000)*730)+1);
+    stormBand(ctx,x0,y0,W,H); mono(ctx,10); [0,1,2,3,4].forEach(v=>{const y=y0+H-v/4*H; line(ctx,[[x0,y],[x0+W,y]],'rgba(58,42,32,.7)',1); txt(ctx,v+'',x0-8,y+4,C.dim,'right');});
+    txt(ctx,'kWh/m²/sol',x0,y0-12,C.dim); txt(ctx,'sol 180–260 storm',x0+180/729*W+4,y0+12,C.alarm);
+    const pc=DATA.solav.map(v=>v*3.49); series(ctx,pc,x0,y0,W,H,0,4,'rgba(140,224,122,.45)',up,false);
+    const pts=series(ctx,DATA.solkwh,x0,y0,W,H,0,4,C.ochre,up);
+    if(pts.length){const p=pts[pts.length-1]; ctx.fillStyle=C.ochre; ctx.beginPath(); ctx.arc(p[0],p[1],3,0,6.28); ctx.fill(); disp(ctx,22); txt(ctx,DATA.solkwh[up-1].toFixed(2)+' kWh/m²',Math.min(p[0],x0+W-120),p[1]-12,C.ochre); }
+    mono(ctx,10); txt(ctx,'— Pack A optical depth',x0+W,y0-12,C.ochre,'right'); txt(ctx,'— Pack C availability switch',x0+W-150,y0-12,C.ok,'right'); txt(ctx,'sol '+(up-1),x0+W,y0+H+18,C.dim,'right'); }
+},
+{ sol:'5–30', where:'Scouting', phase:'Robots land, no crew', q:'Decision 3 · Where to dig', h:'Which ground do the builders work on?',
+  brief:'Scouts run the terrain cost model across a 1.2 km square. The swarm builders\' battery margins say they cannot reach rough ground and come back.',
+  opts:[{t:'Crater rim or rock field',d:'Higher, drier, better views. Twice the traversal energy, three times the stall risk.',ok:false,v:'Rejected. Rock field costs 3.02 Wh/m against 1.45 on the plain and stalls one trip in three. The swarm already fails 70 to 90 % of routes on energy margin.'},
+        {t:'Regolith plain',d:'Lowest energy per metre and lowest hazard. Easy to trench, easy to drive.',ok:true,v:'Chosen. Trench line surveyed on the plain, 400 m from the reactor pad, with three charging pads on the haul road.'}],
+  figs:[['1.45 Wh/m','traversal energy on plain; 3.02 on rock field'],['0.10 vs 0.29','stall probability, plain vs rock field'],['10–30 %','swarm builder routes that succeed']],
+  src:[['b','Pack B']], note:'Cell costs from <code>terrain_grid.csv</code> (60×60 cells, 20 m each); vehicle limits from <code>vehicles.csv</code>; success from <code>routes.csv</code>.', cav:'Grid and routes are synthetic; use them for relative ranking only.',
+  tag:'terrain energy map · naive vs planned route',
+  draw(ctx,w,h,t){ const N=60; const size=Math.min(w-60,h-70); const cs=size/N, ox=(w-size)/2, oy=34;
+    if(!routeCache){ routeCache={opt:dijkstra(DATA.grid_e,DATA.grid_h,N,4*N+4,55*N+54,1).path}; }
+    for(let i=0;i<N*N;i++){ const e=DATA.grid_e[i]; const k=clamp((e-1)/2.6,0,1); const hz=DATA.grid_h[i]; ctx.fillStyle=`rgb(${Math.round(lerp(20,255,k))},${Math.round(lerp(60,122,k)*(1-hz*0.6))},${Math.round(lerp(40,26,k))})`; ctx.fillRect(ox+(i%N)*cs,oy+((i/N)|0)*cs,cs+0.5,cs+0.5); }
+    // naive line
+    ctx.setLineDash([4,3]); line(ctx,[[ox+4.5*cs,oy+4.5*cs],[ox+54.5*cs,oy+55.5*cs]],C.alarm,1.5); ctx.setLineDash([]);
+    const P=routeCache.opt; const pts=P.map(v=>[ox+(v%N+0.5)*cs,oy+((v/N|0)+0.5)*cs]); line(ctx,pts,C.cyan,2,true);
+    const k=(t/5000)%1; const idx=Math.floor(k*(pts.length-1)); const p=pts[idx]; ctx.fillStyle=C.bone; ctx.beginPath(); ctx.arc(p[0],p[1],4,0,6.28); ctx.fill(); ctx.strokeStyle=C.cyan; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(p[0],p[1],8+3*Math.sin(t/150),0,6.28); ctx.stroke();
+    mono(ctx,10); txt(ctx,'— naive straight line',ox+size,oy+size+16,C.alarm,'right'); txt(ctx,'— energy + hazard planned',ox+size-140,oy+size+16,C.cyan,'right'); txt(ctx,'dark = cheap regolith plain · bright = rock field',ox,oy+size+16,C.dim);
+    // energy readout
+    let e=0; for(let i=1;i<=idx;i++){ e+=20*DATA.grid_e[P[i]]; } disp(ctx,22); txt(ctx,(e/1000).toFixed(2)+' kWh',ox+size-6,oy+22,C.cyan,'right'); mono(ctx,10); txt(ctx,'swarm builder pack 1.2 kWh',ox+size-6,oy+36,e>1200?C.alarm:C.dim,'right'); }
+},
+{ sol:30, where:'First trench', phase:'Robots land, no crew', q:'Decision 4 · Depth', h:'How deep does the settlement go?',
+  brief:'Three constraints set the depth. Radiation wants 3 m. Thermal wants to sit below the annual skin depth. Structure says no cover ever balances cabin pressure, so anchors go in regardless. Drag the slider.',
+  opts:[{t:'Surface modules, 1 m cover',d:'Fast. Still 57 mSv per Mars year and the full 58 °C daily swing at the wall.',ok:false,v:'Rejected. 1 m of cover leaves a career dose in about ten years and puts the liner inside the diurnal wave.'},
+        {t:'Cut-and-cover, 3–5 m',d:'Dose near Earth-like, temperature steady at the annual mean, anchors still required.',ok:true,v:'Chosen. Trenches cut 6 m, liners set, 3.5 m of sintered regolith replaced on top, rock anchors every 2 m.'}],
+  figs:[['160 → 7 mSv','per Mars year, surface to 3 m of regolith'],['0.09 m / 2.4 m','diurnal and annual thermal skin depth'],['18 kPa','overburden at 3 m, against 70 kPa uplift'],['−100 °C','coldest hour in the series']],
+  src:[['a','Pack A'],['d','Derived'],['x','External prior']], note:'Extremes from <code>temperature_c</code>. Dose curve uses the Curiosity RAD rate of 0.24 mSv/day and an attenuation length of about 0.85 m at 1.6 t/m³. Skin depths from regolith diffusivity 1–6 ×10⁻⁷ m²/s.',
+  tag:'cross-section · live dose / thermal / uplift', ctl:{min:0,max:10,step:0.1,val:3.5,unit:' m cover',id:'depth'},
+  draw(ctx,w,h,t,st){ const d=st.depth??3.5; const gy=70; const scale=(h-130)/10; const sy=gy+d*scale;
+    // sky + surface + regolith strata
+    ctx.fillStyle='rgba(138,58,28,.25)'; ctx.fillRect(0,gy,w,h-gy); for(let i=0;i<14;i++){ctx.fillStyle=`rgba(0,0,0,${0.05+0.03*(i%3)})`; ctx.fillRect(0,gy+i*(h-gy)/14,w,(h-gy)/28);}
+    line(ctx,[[0,gy],[w,gy]],C.ochre,2,true); mono(ctx,10); txt(ctx,'SURFACE  −100 °C night · −21 °C day',10,gy-8,C.ochre);
+    // habitat tube
+    const hx=w*0.5, r=Math.min(52,scale*1.2); ctx.fillStyle=C.panel; ctx.strokeStyle=C.cyan; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(hx,sy+r,r,0,6.28); ctx.fill(); ctx.stroke();
+    ctx.setLineDash([3,3]); line(ctx,[[hx-r-30,sy],[hx+r+30,sy]],C.cyan,1); ctx.setLineDash([]);
+    // anchors
+    const anchors=[hx-r*0.7,hx+r*0.7]; anchors.forEach(ax=>{line(ctx,[[ax,sy+r*1.9],[ax,Math.min(h-14,sy+r*1.9+40)]],C.dim,2); ctx.fillStyle=C.dim; ctx.fillRect(ax-5,Math.min(h-14,sy+r*1.9+40)-3,10,3);});
+    // radiation particles
+    const D0=160, dose=D0*(1+0.15*d)*Math.exp(-d/0.85);
+    for(let i=0;i<24;i++){ const ph=((t/1200)+i*0.137)%1; const x=(i*53)%w; const depthStop=(0.3+((i*7919)%100)/100*1.4)*0.85; const yEnd=gy+Math.min(d,depthStop)*scale; const y=gy-30+ph*(yEnd-gy+30); if(y<yEnd){ ctx.fillStyle=y<gy?C.bone:C.alarm; ctx.fillRect(x,y,2,6);} }
+    // readouts
+    const diurn=58*Math.exp(-d/0.09), ann=20*Math.exp(-d/2.4), up=70-1600*3.71*d/1000, cost=d*d*0.8+2;
+    const bx=14, by=h-52; disp(ctx,26);
+    txt(ctx,dose.toFixed(dose<10?1:0)+' mSv/yr',bx,by,dose>50?C.alarm:dose>20?C.ochre:C.ok); txt(ctx,'±'+(diurn+ann).toFixed(1)+' °C',bx+150,by,diurn>5?C.alarm:C.ok); txt(ctx,up.toFixed(0)+' kPa',bx+300,by,C.ochre); txt(ctx,cost.toFixed(0)+' rel.',bx+430,by,C.cyan);
+    mono(ctx,10); txt(ctx,'dose at liner',bx,by+14); txt(ctx,'swing at liner',bx+150,by+14); txt(ctx,'net uplift',bx+300,by+14); txt(ctx,'excavation cost',bx+430,by+14);
+    txt(ctx,d.toFixed(1)+' m',hx+r+36,sy+4,C.cyan); }
+},
+{ sol:'30–300', where:'Excavation', phase:'Robots land, no crew', q:'Decision 5 · Volume and order', h:'How much do we build before the crew, and in what order?',
+  brief:'The swarm moves roughly 27 m³ of regolith a sol at full success. Volume is fixed by the sols available. Watch the build run.',
+  opts:[{t:'Comfort first',d:'Larger quarters, a commons, a surface viewing hall.',ok:false,v:'Rejected. Every m³ spent on a hall is a m³ of shielded core not pressurised when 100 people land at sol 700.'},
+        {t:'Power → shielded volume → water & O₂ → food',d:'Each layer complete before the next starts.',ok:true,v:'Chosen. By sol 300 the shielded core holds pressure. The greenhouse trench is open but dark.'}],
+  figs:[['5,000–10,000 m³','pressurised volume for 100 people at 50–100 m³ each'],['4,500 m²','crop area to close the food loop'],['134 t','food imported over 730 days without a greenhouse']],
+  src:[['c','Pack C'],['b','Pack B'],['x','External prior']], note:'Food is <code>food_kg</code> summed over 730 rows. Volume per person is the NASA long-duration standard. Build rate from swarm builder payload and battery in <code>vehicles.csv</code>.',
+  tag:'build sequence · sol 30 to 300',
+  draw(ctx,w,h,t){ const k=clamp((t/6000),0,1); const sol=30+k*270; const rows=[['Reactor & radiators',30,60,C.ochre],['Shielded core 7,500 m³',60,220,C.cyan],['Ice drill · electrolyser',220,260,C.ok],['Greenhouse shell 13,500 m³',260,300,C.dim]];
+    const x0=170,W=w-200,y0=60,rh=(h-140)/rows.length; mono(ctx,10);
+    rows.forEach((r,i)=>{ const y=y0+i*rh; const p=clamp((sol-r[1])/(r[2]-r[1]),0,1); ctx.fillStyle='rgba(58,42,32,.6)'; ctx.fillRect(x0,y,W,rh-14); ctx.fillStyle=r[3]; ctx.shadowColor=r[3]; ctx.shadowBlur=p>0&&p<1?14:0; ctx.fillRect(x0,y,W*p,rh-14); ctx.shadowBlur=0; txt(ctx,r[0],x0-10,y+(rh-14)/2+4,C.bone,'right'); txt(ctx,(p*100).toFixed(0)+'%',x0+W-6,y+(rh-14)/2+4,p>0.5?C.soot:C.dim,'right'); });
+    const vol=Math.round(7500*clamp((sol-60)/160,0,1)+13500*clamp((sol-260)/40,0,1)); disp(ctx,30); txt(ctx,'SOL '+Math.round(sol),w-30,h-40,C.ochre,'right'); txt(ctx,vol.toLocaleString()+' m³ excavated',30,h-40,C.cyan); mono(ctx,10); txt(ctx,'≈ '+Math.round(vol/Math.max(1,sol-60))+' m³ per sol',30,h-24,C.dim); }
+},
+{ sol:60, where:'Airlock siting', phase:'Robots land, no crew', q:'Decision 6 · Exits and collectors', h:'Which way do the doors face?',
+  brief:'Wind carries no structural load here. What it does is bury things. Every strong wind in the series blows toward the north-east.',
+  opts:[{t:'Doors on the lee side',d:'Sheltered from gusts, but exactly where drift accumulates.',ok:false,v:'Rejected. The lee side is the dune trap. Airlocks there are dug out every storm season.'},
+        {t:'Doors and collectors upwind, fences downwind',d:'Airlocks face south-west; sacrificial dust fences sit north-east.',ok:true,v:'Chosen. Vestibules face south-west with an electrostatic dust screen. Fence line staked 40 m north-east of the greenhouse trench.'}],
+  figs:[['97 %','of winds over 15 m/s blow toward the north-east'],['4.8 Pa','peak wind pressure at 25 m/s; same wind on Earth ≈ 380 Pa'],['25 m/s','maximum wind in the series']],
+  src:[['a','Pack A'],['d','Derived']], note:'Wind rose from <code>wind_u_ms</code> and <code>wind_v_ms</code>; dynamic pressure from <code>surface_pressure_pa</code> and temperature through the ideal gas law (ρ ≈ 0.015 kg/m³).',
+  tag:'wind rose · all hours vs > 15 m/s · dust drift',
+  draw(ctx,w,h,t){ const cx=w*0.3, cy=h*0.5, R=Math.min(w*0.22,h*0.38); const names=['N','NE','E','SE','S','SW','W','NW'];
+    mono(ctx,10); [0.33,0.66,1].forEach(f=>{ctx.strokeStyle=C.line; ctx.beginPath(); ctx.arc(cx,cy,R*f,0,6.28); ctx.stroke();});
+    const mA=Math.max(...DATA.rose_all), mS=Math.max(...DATA.rose_strong);
+    for(let i=0;i<8;i++){ const a=(i*45-90)*Math.PI/180; const rA=R*DATA.rose_all[i]/mA, rS=R*DATA.rose_strong[i]/mS; ctx.fillStyle='rgba(237,227,210,.15)'; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,rA,a-0.35,a+0.35); ctx.fill(); ctx.fillStyle='rgba(255,59,92,.75)'; ctx.shadowColor=C.alarm; ctx.shadowBlur=12; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,rS,a-0.2,a+0.2); ctx.fill(); ctx.shadowBlur=0; txt(ctx,names[i],cx+Math.cos(a)*(R+16),cy+Math.sin(a)*(R+16)+4,C.dim,'center'); }
+    txt(ctx,'grey: all hours · red: > 15 m/s',cx,cy+R+34,C.dim,'center');
+    // base plan
+    const px=w*0.66, py=h*0.5, bw=w*0.22, bh=h*0.3; ctx.strokeStyle=C.cyan; ctx.lineWidth=1.5; ctx.strokeRect(px-bw/2,py-bh/2,bw,bh); txt(ctx,'BASE',px,py+4,C.cyan,'center');
+    ctx.fillStyle=C.ok; ctx.fillRect(px-bw/2-8,py+bh/2-6,16,12); txt(ctx,'airlock SW',px-bw/2-12,py+bh/2+24,C.ok,'left');
+    for(let i=0;i<3;i++){ line(ctx,[[px+bw/2+20+i*10,py-bh/2-30],[px+bw/2+20+i*10+30,py-bh/2-60]],C.ochre,2); } txt(ctx,'dust fences NE',px+bw/2+20,py-bh/2-70,C.ochre);
+    // drifting particles toward NE
+    ctx.fillStyle='rgba(255,122,26,.55)'; for(let i=0;i<60;i++){ const ph=((t/1800)+i*0.0713)%1; const sx0=px-bw*0.9+((i*3571)%100)/100*bw*0.6, sy0=py+bh*0.9-((i*1237)%100)/100*bh*0.4; const x=sx0+ph*bw*1.2, y=sy0-ph*bh*1.2; if(x<w&&y>0) ctx.fillRect(x,y,2,2);} }
+},
+{ sol:180, where:'Storm onset', phase:'Storm season, robots only', storm:0.85, q:'Decision 7 · Storm rule', h:'How much warning do we get?',
+  brief:'Dust goes from clear to opaque in a single sol. There is no ramp to forecast, so the rule has to be a trip.',
+  opts:[{t:'Forecast-led shutdown',d:'Needs a lead time the data does not show.',ok:false,v:'Rejected. Sol 179 reads 0.26. Sol 180 reads 3.0. A forecaster trained on this series has nothing to see.'},
+        {t:'Zero-warning trip',d:'Storm mode is a state, entered on a threshold, exited after 10 clear sols.',ok:true,v:'Chosen. At optical depth 1.0 the robots park on charging pads, heating switches to reactor waste heat, every non-essential load drops. Proven over 81 sols before anyone lives under it.'}],
+  figs:[['0.26 → 3.0','optical depth, sol 179 to sol 180'],['43 kW','mean heating load in storm; peak 60 kW'],['+50 %','rover risk score, 0.50 to 0.73 on storm sols']],
+  src:[['a','Pack A'],['b','Pack B']], note:'Onset from <code>emars_settlement_daily_summary.csv</code>; loads from <code>habitat_thermal_load_kw_100p</code>; risk from <code>logistics_duty_cycle_100p_730sol.csv</code>.', cav:'The pack\'s storm barely mutes the daily swing; real storms do. Do not quote its storm thermal physics.',
+  tag:'dust optical depth & heating load · sols 150–300',
+  draw(ctx,w,h,t){ const a=150,b=300; const tau=DATA.tau.slice(a,b), load=DATA.load.slice(a,b), risk=DATA.risk.slice(a,b); const x0=44,y0=36,W=w-80,H=h-96; const up=Math.min(tau.length,Math.floor((t/3500)*tau.length)+1);
+    ctx.fillStyle='rgba(255,59,92,.08)'; ctx.fillRect(x0+30/149*W,y0,80/149*W,H);
+    mono(ctx,10); [0,1,2,3,4].forEach(v=>{const y=y0+H-v/4*H; line(ctx,[[x0,y],[x0+W,y]],'rgba(58,42,32,.7)',1); txt(ctx,v+'',x0-8,y+4,C.dim,'right');});
+    const yT=y0+H-1/4*H; ctx.setLineDash([5,4]); line(ctx,[[x0,yT],[x0+W,yT]],C.ochre,1); ctx.setLineDash([]); txt(ctx,'trip threshold τ = 1.0',x0+4,yT-5,C.ochre);
+    series(ctx,load.map(v=>v/15),x0,y0,W,H,0,4,'rgba(237,227,210,.5)',up,false); series(ctx,risk.map(v=>v*4),x0,y0,W,H,0,4,'rgba(143,163,224,.6)',up,false);
+    const pts=series(ctx,tau,x0,y0,W,H,0,4,C.alarm,up);
+    const cur=tau[up-1]; stormLevel = cur>1?0.85:0.15; if(pts.length){const p=pts[pts.length-1]; disp(ctx,22); txt(ctx,'τ '+cur.toFixed(2),Math.min(p[0]+8,x0+W-70),p[1]-8,cur>1?C.alarm:C.bone);}
+    mono(ctx,10); txt(ctx,'sol '+(a+up-1),x0+W,y0+H+18,C.dim,'right'); txt(ctx,cur>1?'STORM MODE':'clear',x0+W,y0+H+32,cur>1?C.alarm:C.ok,'right');
+    txt(ctx,'— τ (dust)',x0+W,y0-12,C.alarm,'right'); txt(ctx,'— heat kW/15',x0+W-80,y0-12,C.bone,'right'); txt(ctx,'— rover risk ×4',x0+W-170,y0-12,'#8FA3E0','right'); }
+},
+{ sol:700, where:'Crew landing', phase:'Crew of 100 arrives', q:'Decision 8 · Life support', h:'What do 100 people consume, and what must be made here?',
+  brief:'With recovery loops running, makeup is small enough for one ice drill and one electrolyser. Food is the open loop.',
+  opts:[{t:'Open loop, import everything',d:'Simple, impossible past the first resupply gap.',ok:false,v:'Rejected. Without recovery, water alone is 355 kg a day, 259 t over the window. No manifest carries that.'},
+        {t:'Closed water & O₂, imported food, greenhouse ramping',d:'Recycle what can be recycled; ship only what cannot yet be grown.',ok:true,v:'Chosen. One ice drill at 50 kg a day and a 20 kW electrolyser cover makeup with margin. Food stores sized at 140 t.'}],
+  figs:[['89 kg/day','oxygen used; textbook is 84 at rest'],['355 kg/day','water used, 94 % recovered'],['7.6 / 20 kg','daily O₂ and water makeup, clear sols'],['183 kg/day','food, imported until crops mature']],
+  src:[['c','Pack C'],['x','External prior']], note:'Rates from <code>mars500_eclss_scaled_100p_730d.csv</code>; totals cross-checked against <code>window_totals.json</code>. Per-person baselines are NASA ECLSS priors.', cav:'Not real Mars500 telemetry; built from published per-person rates.',
+  tag:'daily mass flow · recovered vs makeup vs imported',
+  draw(ctx,w,h,t){ const k=clamp(t/1800,0,1); const rows=[['Water',355,0.94,C.cyan],['Oxygen',89,0.91,C.ok],['Food',183,0,C.ochre]]; const x0=110,W=w-160,y0=60,rh=(h-120)/3; mono(ctx,10);
+    rows.forEach((r,i)=>{ const y=y0+i*rh, bh=rh*0.45; const full=W*r[1]/355*k; txt(ctx,r[0],x0-12,y+bh/2+4,C.bone,'right'); ctx.fillStyle='rgba(58,42,32,.6)'; ctx.fillRect(x0,y,full,bh); ctx.fillStyle=r[3]; ctx.shadowColor=r[3]; ctx.shadowBlur=10; ctx.fillRect(x0,y,full*r[2],bh); ctx.shadowBlur=0; ctx.fillStyle=r[2]?C.alarm:C.ochre; ctx.fillRect(x0+full*r[2],y,full*(1-r[2]),bh);
+      disp(ctx,20); txt(ctx,Math.round(r[1]*k)+' kg/day',x0+full+10,y+bh/2+7,C.bone); mono(ctx,10); txt(ctx,r[2]?`${Math.round(r[2]*100)}% recovered · ${(r[1]*(1-r[2])).toFixed(1)} kg makeup`:'100% imported · 134 t over the window',x0,y+bh+16,r[2]?C.dim:C.ochre); });
+    txt(ctx,'recovered',x0,h-24,C.cyan); txt(ctx,'makeup from ice / electrolysis',x0+80,h-24,C.alarm); txt(ctx,'imported',x0+270,h-24,C.ochre); }
+},
+{ sol:'700–900', where:'Greenhouse fit-out', phase:'Crew of 100 arrives', q:'Decision 9 · Daylight', h:'How does sunlight reach a farm 4 m underground?',
+  brief:'Lighting the greenhouse with LEDs fed by panels would cost more power than everything else combined. Piping light down loses less on the way.',
+  opts:[{t:'PV to LED',d:'About 10 % of collected sunlight reaches the leaf. 0.9 MW of demand.',ok:false,v:'Rejected. 3,500 m² at 250 W/m² is 875 kW, four times the rest of the base. Every panel field becomes a greenhouse tax.'},
+        {t:'Fibre light pipes + water-shielded sunroom',d:'30–50 % of collected light delivered; collectors need dust cleaning.',ok:true,v:'Chosen. Collectors cleaned every 20 sols by a scout rover. LEDs kept for 25 % of crop area, enough to hold seed stock through a storm.'}],
+  figs:[['875 kW','LED demand for 3,500 m² at 250 W/m²; rest of base ≈ 230 kW'],['30–50 %','light delivered by fibre versus ≈ 10 % via PV and LED'],['0.2 %/sol','panel obscuration from settling dust between storms']],
+  src:[['a','Pack A'],['d','Derived'],['x','External prior']], note:'Available light from the Pack A sky model; LED wattage and pipe efficiency are published horticulture figures; dust settling is a Mars Exploration Rover prior.',
+  tag:'photon budget · two paths from collector to leaf',
+  draw(ctx,w,h,t){ const paths=[['PV → battery → LED',[['collector',1],['PV 20%',0.2],['inverter/battery 85%',0.17],['LED 55%',0.094]],C.alarm],['Fibre light pipe',[['collector',1],['coupling 80%',0.8],['fibre 4 m 85%',0.68],['diffuser 65%',0.44]],C.cyan]];
+    const x0=40,W=w-80; mono(ctx,10);
+    paths.forEach((P,pi)=>{ const y=60+pi*(h-100)/2, H=(h-100)/2-40; txt(ctx,P[0],x0,y-10,P[2]); P[1].forEach((s,i)=>{ const x=x0+i*W/4, bw=W/4-14, bh=H*s[1]; ctx.fillStyle='rgba(58,42,32,.5)'; ctx.fillRect(x,y,bw,H); ctx.fillStyle=P[2]; ctx.globalAlpha=0.75; ctx.fillRect(x,y+H-bh,bw,bh); ctx.globalAlpha=1; txt(ctx,s[0],x+bw/2,y+H+14,C.dim,'center'); disp(ctx,18); txt(ctx,Math.round(s[1]*100)+'%',x+bw/2,y+H-bh-6,P[2],'center'); mono(ctx,10); });
+      // photons
+      ctx.fillStyle=P[2]; for(let i=0;i<30;i++){ const ph=((t/2200)+i*0.0333)%1; const x=x0+ph*W; const stage=Math.min(3,Math.floor(ph*4)); const alive=((i*7919)%100)/100 < P[1][stage][1]; if(alive){ const yy=y+H-8-((i*131)%17); ctx.fillRect(x,yy,3,3);} } }); }
+},
+{ sol:880, where:'Second storm season', phase:'First storm with people inside', storm:0.85, q:'Decision 10 · Living through it', h:'What changes inside when the sky goes dark for 81 sols?',
+  brief:'The storm mode proven by the robots now has occupants. Cabin air drifts first, water makeup nearly doubles, surface trips stop.',
+  opts:[{t:'Keep normal operations',d:'Rover risk and water makeup climb with no resupply behind them.',ok:false,v:'Rejected. Water makeup at 33 kg a day and rover risk at 0.73 with the drill 400 m away is how a settlement loses a crew.'},
+        {t:'Seal, shed, and wait',d:'EVA suspended, greenhouse on minimum light, CO₂ scrubbing at full rate.',ok:true,v:'Chosen. The settlement exits storm mode with 60 t of food left, loops closed, and a shopping list for the next window: more light pipes, a second drill, and no hotel.'}],
+  figs:[['870 → 1,160 ppm','cabin CO₂ proxy, clear to storm'],['1,980 → 2,430 m³/h','greenhouse ventilation demand'],['33 kg/day','water makeup in storm, from 18'],['0.73','rover terrain risk on storm sols']],
+  src:[['c','Pack C'],['b','Pack B']], note:'Air and water columns from Pack C grouped by <code>dust_storm_flag</code>; risk from Pack B\'s trip table.', cav:'Pack C\'s CO₂ proxy tops out at mild stress; a real failure mode has to be added, not read off.',
+  tag:'cabin CO₂ & ventilation · days 150–300',
+  draw(ctx,w,h,t){ const a=150,b=300; const co2=DATA.co2.slice(a,b), vent=DATA.vent.slice(a,b), wm=DATA.wmake.slice(a,b); const x0=54,y0=36,W=w-90,H=h-96; const up=Math.min(co2.length,Math.floor((t/3500)*co2.length)+1);
+    ctx.fillStyle='rgba(255,59,92,.08)'; ctx.fillRect(x0+30/149*W,y0,80/149*W,H); mono(ctx,10);
+    [700,900,1100,1300].forEach(v=>{const y=y0+H-(v-700)/600*H; line(ctx,[[x0,y],[x0+W,y]],'rgba(58,42,32,.7)',1); txt(ctx,v+'',x0-8,y+4,C.dim,'right');}); txt(ctx,'ppm CO₂',x0,y0-12,C.dim);
+    series(ctx,vent.map(v=>700+(v-1900)/600*600),x0,y0,W,H,700,1300,'rgba(61,242,224,.5)',up,false); series(ctx,wm.map(v=>700+v/40*600),x0,y0,W,H,700,1300,'rgba(255,122,26,.6)',up,false);
+    const pts=series(ctx,co2,x0,y0,W,H,700,1300,C.alarm,up); const cur=co2[up-1]; stormLevel = (a+up-1>=180&&a+up-1<=260)?0.85:0.15;
+    if(pts.length){const p=pts[pts.length-1]; disp(ctx,22); txt(ctx,cur+' ppm',Math.min(p[0]+8,x0+W-90),p[1]-8,cur>1000?C.alarm:C.bone);}
+    mono(ctx,10); txt(ctx,'day '+(a+up-1),x0+W,y0+H+18,C.dim,'right'); txt(ctx,'— CO₂',x0+W,y0-12,C.alarm,'right'); txt(ctx,'— ventilation',x0+W-50,y0-12,C.cyan,'right'); txt(ctx,'— water makeup',x0+W-150,y0-12,C.ochre,'right'); }
+},
+{ kind:'cmp', sol:1430, where:'Next resupply window', phase:'Debrief' },
+];
+
+/* ---------- build DOM ---------- */
+const stage=$('#stage'); const rail=$('#rail');
+S.forEach((s,i)=>{ const el=document.createElement('section'); el.className='slide'+(s.kind?' full':''); el.dataset.i=i; stage.appendChild(el); s.el=el;
+  const dot=document.createElement('div'); dot.className='dot'+(s.storm?' storm':''); dot.style.left=(i/(S.length-1)*100)+'%'; dot.title=s.q||''; dot.addEventListener('click',()=>go(i)); rail.appendChild(dot); s.dot=dot;
+  if(s.kind==='title'){ el.innerHTML=`<div class="title"><div class="q">Mars settlement decision log · GirlsWhoML × PhysicsX pack</div>
+    <h1>Sol <em>Zero</em><br>Console</h1>
+    <p>Ten decisions between a robot landing and the first storm with 100 people inside. Each one is settled by numbers from the hackathon packs, with the file named. None of it is flight-qualified and the console says so wherever it leans on simulated tables.</p>
+    <div class="pre"><div><b>100</b><span>residents</span></div><div><b>730</b><span>sols to resupply</span></div><div><b>180–260</b><span>storm sols</span></div><div><b>18.4° N</b><span>pack site</span></div><div><b>−56 °C</b><span>annual mean</span></div></div>
+    <button class="big" id="boot">Initiate sequence ▶</button></div>`; return; }
+  if(s.kind==='cmp'){ el.innerHTML=`<div class="end"><div><div class="q">Debrief · sol 1430</div><h2>What Earth taught us that Mars throws out</h2></div>
+    <div class="cmp"><div><h3 class="no">Does not carry over</h3><ul>
+      <li><b>Wind loading.</b> Earth codes size walls for hundreds of pascals. Mars peaks under 5 Pa. Dust deposition replaces wind load as the driver.</li>
+      <li><b>Gravity holds buildings down.</b> 70 kPa of cabin pressure pushes up; 3 m of cover supplies 18 kPa. Every habitat is an anchored pressure vessel in tension.</li>
+      <li><b>Windows are free.</b> Every square metre of daylight costs shielding or power. Light is piped, not framed.</li>
+      <li><b>Fire rating by wall thickness.</b> A 160 mm two-hour wall means nothing. Fire is controlled by oxygen partial pressure.</li>
+      <li><b>Concrete.</b> Needs water the loop cannot spare. Sintered regolith, sulfur concrete and basalt fibre instead.</li>
+      <li><b>Cooling by air.</b> No convection outside. Waste heat leaves by radiators.</li></ul></div>
+    <div><h3 class="yes">Mars does better, Earth could copy</h3><ul>
+      <li><b>Closed loops by default.</b> 94 % water and 91 % oxygen recovery are the entry requirement.</li>
+      <li><b>Heat and power as one system.</b> Reactor waste heat is the district heating from the first module.</li>
+      <li><b>Robots finish before people arrive.</b> No one lives next to a construction site.</li>
+      <li><b>Deterministic siting.</b> One wind rose, one sun path, one predictable storm season. Orientation is a calculation.</li>
+      <li><b>Compact by necessity.</b> Shared volume underground beats sprawl; the walk to anything is under 200 m.</li>
+      <li><b>Build order by survival value.</b> Power, shelter, water, food, then leisure. The hotel is last on purpose.</li></ul></div></div>
+    <div class="note">Data: <code>melaniepreen/mars-sim-girlswhomlphysicsx-hack</code> guided packs A, B, C. Packs A and C are simulated from EMARS and Mars500 priors; Pack B holds 48 real AI4MARS frames plus a simulated trip table and terrain grid. See KNOWN_ISSUES.txt before citing any number as measured.</div></div>`; return; }
+  el.innerHTML=`<div class="viz"><canvas></canvas><div class="tag">${s.tag}</div>${s.ctl?`<div class="ctl"><label for="${s.ctl.id}">cover depth</label><input type="range" id="${s.ctl.id}" min="${s.ctl.min}" max="${s.ctl.max}" step="${s.ctl.step}" value="${s.ctl.val}"><output for="${s.ctl.id}">${s.ctl.val}${s.ctl.unit}</output></div>`:''}</div>
+  <div class="console">
+    <div><div class="q">${s.q}</div><h2>${s.h}</h2></div>
+    <p class="brief">${s.brief}</p>
+    <div class="fork">${s.opts.map((o,j)=>`<button class="opt" data-key="${j+1}" data-j="${j}"><b>${o.t}</b><span>${o.d}</span></button>`).join('')}</div>
+    <div class="verdict"><span class="lbl"></span><span class="txt"></span></div>
+    <div class="figs">${s.figs.map(f=>`<div class="fig"><b>${f[0]}</b><span>${f[1]}</span></div>`).join('')}</div>
+    <div class="src">${s.src.map(c=>`<span class="chip ${c[0]}">${c[1]}</span>`).join('')}</div>
+    <div class="note">${s.note}</div>${s.cav?`<div class="caveat">${s.cav}</div>`:''}
+    <button class="advance">Advance ▶</button>
+  </div>`;
+  s.state={}; s.canvas=$('canvas',el); s.ctx=s.canvas.getContext('2d');
+  if(s.ctl){ const r=$('#'+s.ctl.id,el), o=$('output',el); s.state[s.ctl.id]=s.ctl.val; r.addEventListener('input',()=>{s.state[s.ctl.id]=parseFloat(r.value); o.textContent=r.value+s.ctl.unit;}); }
+  const verdict=$('.verdict',el), adv=$('.advance',el);
+  el.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>pick(s,parseInt(b.dataset.j))));
+  s.pick=j=>{ const o=s.opts[j]; el.querySelectorAll('.opt').forEach((b,k)=>{b.classList.toggle('pick',k===j&&o.ok); b.classList.toggle('bad',k===j&&!o.ok); b.classList.toggle('dimmed',k!==j);}); verdict.className='verdict show'+(o.ok?'':' bad'); $('.lbl',verdict).textContent=o.ok?'Chosen · data holds':'Consequence'; $('.txt',verdict).textContent=o.v; adv.classList.add('ready'); if(o.ok){s.decided=true;} };
+  adv.addEventListener('click',()=>go(cur+1));
+});
+function pick(s,j){ s.pick(j); }
+
+/* ---------- navigation ---------- */
+let cur=0, t0=performance.now();
+function go(i){ i=clamp(i,0,S.length-1); if(i===cur&&S[i].el.classList.contains('on')) return; const prev=S[cur]; cur=i; const s=S[i]; t0=performance.now();
+  S.forEach((x,k)=>{ x.el.classList.toggle('on',k===i); x.el.classList.toggle('off-l',k<i); x.dot.classList.toggle('cur',k===i); x.dot.classList.toggle('done',k<i); });
+  $('#railFill').style.width=(i/(S.length-1)*100)+'%';
+  $('#hudSol').firstChild.textContent='SOL '+(typeof s.sol==='number'&&s.sol<0?'−'+Math.abs(s.sol):s.sol); $('#hudWhere').textContent=s.where; $('#hudPhase').textContent=s.phase;
+  stormLevel=s.storm||0; const h2=$('h2',s.el); if(h2&&!reduced){h2.classList.remove('glitch'); void h2.offsetWidth; h2.classList.add('glitch');}
+  if(s.kind==='cmp'){ s.el.querySelectorAll('li').forEach((li,k)=>{li.style.animationDelay=(k*90)+'ms';}); }
+  if(s.canvas) sizeCanvas(s);
+  location.hash='s'+i; }
+function sizeCanvas(s){ const r=s.canvas.parentElement.getBoundingClientRect(); s.canvas.width=r.width*devicePixelRatio; s.canvas.height=r.height*devicePixelRatio; s.ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); s.w=r.width; s.h=r.height; }
+addEventListener('resize',()=>{ S.forEach(s=>{ if(s.canvas&&s.el.classList.contains('on')) sizeCanvas(s); }); });
+$('#nextBtn').addEventListener('click',()=>go(cur+1)); $('#prevBtn').addEventListener('click',()=>go(cur-1));
+addEventListener('hashchange',()=>{const i=parseInt((location.hash.match(/s(\d+)/)||[])[1]||0); if(!isNaN(i)&&i!==cur) go(i);});
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT') return; if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){e.preventDefault();go(cur+1);} else if(e.key==='ArrowLeft'){go(cur-1);} else if(e.key==='1'||e.key==='2'){ const s=S[cur]; if(s.pick) s.pick(parseInt(e.key)-1);} else if(e.key==='Home'){go(0);} });
+document.addEventListener('click',e=>{ if(e.target.id==='boot') go(1); });
+
+/* ---------- loop ---------- */
+function loop(now){ drawStars(now); const s=S[cur]; if(s.draw&&s.ctx&&s.w){ const ctx=s.ctx; ctx.clearRect(0,0,s.w,s.h); ctx.textBaseline='alphabetic'; const t=reduced?1e9:(now-t0); s.draw(ctx,s.w,s.h,t,s.state); frame(ctx,s.w,s.h); } requestAnimationFrame(loop); }
+const start=parseInt((location.hash.match(/s(\d+)/)||[])[1]||0); go(isNaN(start)?0:start); requestAnimationFrame(loop);
+})();
+</script>

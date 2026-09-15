@@ -1,0 +1,577 @@
+<title>Sol Zero to First Storm</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #ECE9E3;
+    --panel: #F7F5F1;
+    --panel-2: #E2DDD5;
+    --line: #C9C2B7;
+    --text: #1C1815;
+    --muted: #6B6259;
+    --accent: #B85F1E;
+    --accent-soft: rgba(184, 95, 30, 0.12);
+    --data: #1F7F7A;
+    --data-soft: rgba(31, 127, 122, 0.10);
+    --warn: #A33A2E;
+    --warn-soft: rgba(163, 58, 46, 0.10);
+    --spine: #B85F1E;
+    --chip-a: #B85F1E;
+    --chip-b: #5B6C9E;
+    --chip-c: #4E8A3F;
+    --chip-x: #6B6259;
+    --chip-d: #1F7F7A;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15120F;
+      --panel: #211C17;
+      --panel-2: #2B251F;
+      --line: #3C342C;
+      --text: #ECE4D8;
+      --muted: #8E8377;
+      --accent: #E08A3C;
+      --accent-soft: rgba(224, 138, 60, 0.14);
+      --data: #63B6B0;
+      --data-soft: rgba(99, 182, 176, 0.12);
+      --warn: #E0664F;
+      --warn-soft: rgba(224, 102, 79, 0.14);
+      --spine: #E08A3C;
+      --chip-a: #E08A3C;
+      --chip-b: #8FA3E0;
+      --chip-c: #8CC97A;
+      --chip-x: #A79C8F;
+      --chip-d: #63B6B0;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15120F;
+    --panel: #211C17;
+    --panel-2: #2B251F;
+    --line: #3C342C;
+    --text: #ECE4D8;
+    --muted: #8E8377;
+    --accent: #E08A3C;
+    --accent-soft: rgba(224, 138, 60, 0.14);
+    --data: #63B6B0;
+    --data-soft: rgba(99, 182, 176, 0.12);
+    --warn: #E0664F;
+    --warn-soft: rgba(224, 102, 79, 0.14);
+    --spine: #E08A3C;
+    --chip-a: #E08A3C;
+    --chip-b: #8FA3E0;
+    --chip-c: #8CC97A;
+    --chip-x: #A79C8F;
+    --chip-d: #63B6B0;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    padding-inline: clamp(16px, 4vw, 48px);
+    padding-block: 0 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* ---------- header ---------- */
+  header { padding-block: 40px 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 {
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700; font-size: clamp(40px, 7vw, 72px);
+    line-height: 0.95; letter-spacing: -0.01em; margin: 10px 0 14px;
+    text-wrap: balance;
+  }
+  .lede { max-width: 62ch; color: var(--muted); font-size: 16px; margin: 0; }
+  .preconditions {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  .pre { background: var(--panel); padding: 12px 14px; }
+  .pre b {
+    display: block; font-family: "Barlow Condensed", sans-serif; font-weight: 600;
+    font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .pre span { font-size: 12px; color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+  .legend .chip { margin: 0; }
+
+  /* ---------- chips ---------- */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--text);
+    padding: 2px 8px 2px 6px; border: 1px solid var(--line); border-radius: 2px;
+    background: var(--panel-2); white-space: nowrap;
+  }
+  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--chip-x); }
+  .chip.a::before { background: var(--chip-a); }
+  .chip.b::before { background: var(--chip-b); }
+  .chip.c::before { background: var(--chip-c); }
+  .chip.d::before { background: var(--chip-d); }
+  .chip.x::before { background: var(--chip-x); }
+
+  /* ---------- timeline ---------- */
+  .timeline { position: relative; padding-top: 36px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 88px; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(var(--spine), var(--spine) 92%, transparent);
+    opacity: 0.55;
+  }
+  .phase {
+    position: relative; margin: 32px 0 14px 0; padding-left: 116px;
+    font-family: "Barlow Condensed", sans-serif; font-weight: 600;
+    font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+  }
+  .phase::before {
+    content: ""; position: absolute; left: 82px; top: 50%; width: 14px; height: 14px;
+    transform: translateY(-50%) rotate(45deg); background: var(--bg); border: 2px solid var(--spine);
+  }
+
+  .stop { position: relative; display: grid; grid-template-columns: 72px 1fr; gap: 0 44px; margin-bottom: 22px; }
+  .sol {
+    text-align: right; padding-top: 18px;
+    font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 26px; line-height: 1;
+    font-variant-numeric: tabular-nums; color: var(--accent);
+  }
+  .sol small { display: block; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.08em; color: var(--muted); font-weight: 400; margin-top: 4px; }
+  .stop::before {
+    content: ""; position: absolute; left: 82px; top: 22px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 4px var(--bg);
+  }
+  .stop.storm::before { background: var(--warn); }
+  .stop.storm .sol { color: var(--warn); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); }
+  .card-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+  .card-head .q {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+  }
+  .card-head h2 { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 26px; line-height: 1.1; margin: 0; flex: 1 1 100%; text-wrap: balance; }
+  .card-body { display: grid; grid-template-columns: 1.15fr 1fr; }
+  .col { padding: 16px 20px 18px; }
+  .col + .col { border-left: 1px solid var(--line); background: var(--data-soft); }
+  .col h3 {
+    margin: 0 0 8px; font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+  }
+  .col p { margin: 0 0 10px; max-width: 58ch; }
+  .col p:last-child { margin-bottom: 0; }
+
+  .fork { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 12px; }
+  .opt { border: 1px dashed var(--line); padding: 8px 10px; font-size: 13px; color: var(--muted); }
+  .opt b { display: block; color: var(--text); font-weight: 600; font-size: 13.5px; }
+  .opt.pick { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--text); }
+  .opt.pick b::after { content: " chosen"; font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-left: 6px; }
+
+  .figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px 14px; margin-bottom: 12px; }
+  .fig b {
+    display: block; font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 18px; line-height: 1.15;
+    color: var(--data); font-variant-numeric: tabular-nums;
+  }
+  .fig span { font-size: 12px; color: var(--muted); line-height: 1.3; display: block; }
+  .src { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .src-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .src-note code { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text); }
+  .caveat { font-size: 12.5px; color: var(--warn); margin-top: 8px; }
+
+  .action {
+    grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 12px 20px 14px;
+    display: flex; gap: 12px; align-items: baseline; font-size: 14.5px;
+  }
+  .action .arrow { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--accent); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+
+  /* ---------- comparison ---------- */
+  .compare { margin-top: 48px; border-top: 1px solid var(--line); padding-top: 28px; }
+  .compare h2 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 36px; margin: 0 0 6px; line-height: 1; }
+  .compare p.lede { margin-bottom: 18px; }
+  .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .cmp { background: var(--panel); padding: 16px 20px; }
+  .cmp h3 { margin: 0 0 8px; font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 20px; }
+  .cmp ul { margin: 0; padding-left: 18px; }
+  .cmp li { margin-bottom: 8px; }
+  .cmp li b { font-weight: 600; }
+
+  footer { margin-top: 36px; font-size: 12.5px; color: var(--muted); max-width: 72ch; }
+  footer code { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; }
+
+  @media (max-width: 720px) {
+    .timeline::before { left: 10px; }
+    .phase { padding-left: 34px; }
+    .phase::before { left: 4px; }
+    .stop { grid-template-columns: 1fr; gap: 0; padding-left: 34px; }
+    .stop::before { left: 4px; top: 4px; }
+    .sol { text-align: left; padding-top: 0; margin-bottom: 8px; }
+    .card-body { grid-template-columns: 1fr; }
+    .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+    .cmp-grid { grid-template-columns: 1fr; }
+    .fork { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .stop { animation: rise 0.5s ease both; }
+    @keyframes rise { from { transform: translateY(6px); } to { transform: none; } }
+  }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Mars settlement decision log · 100 people · 730 sols · one dust season</div>
+  <h1>Sol Zero to First Storm</h1>
+  <p class="lede">Every stop on this line is a decision the settlement had to make. Each one names the numbers that settled it and the file or prior those numbers came from. Nothing here is flight-qualified: the hackathon packs are simulated tables shaped like Mars, and the log says so wherever it leans on them.</p>
+
+  <div class="preconditions">
+    <div class="pre"><b>100</b><span>residents to house and feed</span></div>
+    <div class="pre"><b>730</b><span>sols before cheap resupply</span></div>
+    <div class="pre"><b>180–260</b><span>dust storm sols in the window</span></div>
+    <div class="pre"><b>18.4° N</b><span>Jezero-band site in the pack</span></div>
+    <div class="pre"><b>−56 °C</b><span>annual mean at that site</span></div>
+  </div>
+
+  <div class="legend">
+    <span>Where the numbers come from:</span>
+    <span class="chip a">Pack A · EMARS weather</span>
+    <span class="chip b">Pack B · AI4MARS mobility</span>
+    <span class="chip c">Pack C · Mars500 ECLSS</span>
+    <span class="chip d">Derived calculation</span>
+    <span class="chip x">External prior</span>
+  </div>
+</header>
+
+<div class="timeline">
+
+  <div class="phase">Phase 0 · Before anything launches</div>
+
+  <div class="stop">
+    <div class="sol">−700<small>Earth, planning</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 1 · Site</span><h2>Sunlight near the equator, or water at mid-latitude?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <div class="fork">
+            <div class="opt"><b>Jezero band, 18° N</b>Warmest, best solar, closest to landing heritage. No shallow ice.</div>
+            <div class="opt pick"><b>Mid-latitude ice, 35–45° N</b>Colder and darker, but buried ice within reach of a drill.</div>
+          </div>
+          <p>Life support water makeup is small, but propellant, construction and radiation shielding all want tonnes of water. A site with ice trades a few percent of solar for an open-ended water supply.</p>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>3.49 kWh/m²</b><span>per sol on a flat panel, clear sols at 18.4° N</span></div>
+            <div class="fig"><b>−55 °C</b><span>clear-sol mean temperature at the pack site</span></div>
+            <div class="fig"><b>28 kg/day</b><span>water needed for makeup plus O₂ electrolysis</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip c">Pack C</span><span class="chip x">External prior</span></div>
+          <div class="src-note">Solar and temperature from <code>emars_settlement_hourly_730sol.csv</code>; makeup from <code>net_water_makeup_kg</code> and <code>net_o2_makeup_kg</code>. Ice depth versus latitude is a NASA SWIM mapping prior, not in the packs.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>Robots are sent to a mid-latitude ice site. The weather series below is still the pack's 18° N proxy, so treat its temperatures as a warm bound.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">Phase 1 · Robots land, no crew</div>
+
+  <div class="stop">
+    <div class="sol">0<small>robot landing</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 2 · Power</span><h2>Can the settlement run on solar and batteries alone?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <div class="fork">
+            <div class="opt"><b>Solar + batteries</b>Simple, no nuclear licensing. Must ride out 81 sols of storm.</div>
+            <div class="opt pick"><b>Fission baseload + solar</b>Reactor covers life support and heat; panels feed greenhouse and industry when the sky is clear.</div>
+          </div>
+          <p>The storm cuts panel output by roughly thirty times, not the four times the life-support table assumes. Storing 81 sols of demand would need more battery mass than the whole cargo manifest.</p>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>0.11 kWh/m²</b><span>per sol during the storm, versus 3.49 clear</span></div>
+            <div class="fig"><b>2,200 MWh</b><span>energy to bridge 81 storm sols at 1.1 MW</span></div>
+            <div class="fig"><b>~15,000 t</b><span>battery mass at 150 Wh/kg to store it</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip c">Pack C</span><span class="chip d">Derived</span></div>
+          <div class="src-note">Optical depth from <code>dust_optical_depth</code> (0.18 clear, 3.15 storm) run through a Beer–Lambert sky model. Pack C's flat <code>solar_availability = 0.25</code> in storm is the optimistic case.</div>
+          <div class="caveat">Pack C's 0.25 storm factor is a coarse switch, per KNOWN_ISSUES.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>First cargo down is the reactor and its radiators. Panels come second and are sized for clear-sky surplus, not survival.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="sol">5–30<small>scouting</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 3 · Where to dig</span><h2>Which ground do the builders work on?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <div class="fork">
+            <div class="opt"><b>Crater rim or rock field</b>Higher, drier, better views. Twice the traversal energy and three times the stall risk.</div>
+            <div class="opt pick"><b>Regolith plain</b>Lowest energy per metre and lowest hazard. Easy to trench, easy to drive.</div>
+          </div>
+          <p>Scouts run the terrain cost model and the swarm builders' battery margins show they cannot reach rough ground and return. The plain is chosen and charging waypoints are placed along the haul road.</p>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>1.45 Wh/m</b><span>traversal energy on regolith plain; 3.02 on rock field</span></div>
+            <div class="fig"><b>0.10 vs 0.29</b><span>stall probability, plain versus rock field</span></div>
+            <div class="fig"><b>10–30 %</b><span>swarm builder trips that succeed on energy margin</span></div>
+          </div>
+          <div class="src"><span class="chip b">Pack B</span></div>
+          <div class="src-note">Cell costs from <code>terrain_grid.csv</code> (60×60 cells, 20 m each); vehicle limits from <code>vehicles.csv</code> (swarm builder: 75 kg, 1.2 kWh, 15 kg payload); success rates from <code>routes.csv</code>.</div>
+          <div class="caveat">Grid and routes are synthetic; use them for relative ranking only.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>Trench line surveyed on the plain, 400 m from the reactor. Haul road gets three charging pads.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="sol">30<small>first trench</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 4 · Depth</span><h2>How deep does the settlement go?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <div class="fork">
+            <div class="opt"><b>Surface modules, 1 m cover</b>Fast. Still 57 mSv per Mars year and the full 58 °C daily swing.</div>
+            <div class="opt pick"><b>Cut-and-cover, 3–5 m</b>Dose near Earth-like, temperature steady at the annual mean, still anchor-dependent.</div>
+          </div>
+          <p>Three constraints set the depth. Radiation wants 3 m. Thermal wants to be below the annual skin depth so the −100 °C nights never reach the liner. Structure says no amount of cover balances 70 kPa of cabin pressure, so anchors go in regardless, and deeper than 5 m only buys excavation cost.</p>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>160 → 7 mSv</b><span>per Mars year, surface to 3 m of regolith</span></div>
+            <div class="fig"><b>0.09 m / 2.4 m</b><span>diurnal and annual thermal skin depth in regolith</span></div>
+            <div class="fig"><b>18 kPa</b><span>overburden from 3 m cover, against 70 kPa uplift</span></div>
+            <div class="fig"><b>−100 °C</b><span>coldest hour in the series; swing 58 °C</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip d">Derived</span><span class="chip x">External prior</span></div>
+          <div class="src-note">Temperature extremes from <code>temperature_c</code>. Dose curve uses the Curiosity RAD surface rate of 0.24 mSv/day and an attenuation length of about 0.85 m at 1.6 t/m³. Skin depths from regolith diffusivity 1–6 ×10⁻⁷ m²/s.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>Trenches cut 6 m deep on the plain, liners set, 3.5 m of sintered regolith replaced on top, rock anchors every 2 m.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="sol">30–300<small>excavation</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 5 · Volume and order</span><h2>How much do we build before the crew arrives, and in what order?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>The swarm can move about 27 m³ of regolith per sol at full success, so the volume budget is fixed by the sols available. Everything that keeps people alive is built first; the greenhouse shell is dug but not fitted out.</p>
+          <div class="fork">
+            <div class="opt"><b>Comfort first</b>Larger private quarters, a commons, a surface viewing hall.</div>
+            <div class="opt pick"><b>Power → shielded volume → water and O₂ → food</b>Each layer is complete before the next one starts.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>5,000–10,000 m³</b><span>pressurised volume for 100 people at 50–100 m³ each</span></div>
+            <div class="fig"><b>4,500 m²</b><span>crop area to close the food loop</span></div>
+            <div class="fig"><b>134 t</b><span>food imported over 730 days without a greenhouse</span></div>
+          </div>
+          <div class="src"><span class="chip c">Pack C</span><span class="chip b">Pack B</span><span class="chip x">External prior</span></div>
+          <div class="src-note">Food total is <code>food_kg</code> summed over 730 rows (183 kg/day). Volume per person is the NASA long-duration habitability standard. Build rate from swarm builder payload and battery in <code>vehicles.csv</code>.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>By sol 300 the shielded core is pressurised and holding. The greenhouse trench is open but dark.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="sol">60<small>airlock siting</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 6 · Exits and collectors</span><h2>Which way do the doors and greenhouse collectors face?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>Wind on Mars carries no structural load worth designing for. What it does is bury things. Every strong wind in the series blows toward the north-east, so that is where dunes form and that is where nothing important goes.</p>
+          <div class="fork">
+            <div class="opt"><b>Doors on the lee side</b>Sheltered from gusts, but sitting exactly where drift accumulates.</div>
+            <div class="opt pick"><b>Doors and collectors upwind, fences downwind</b>Airlocks face south-west; sacrificial dust fences and a dune trap sit north-east.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>97 %</b><span>of winds over 15 m/s blow toward the north-east</span></div>
+            <div class="fig"><b>4.8 Pa</b><span>peak wind pressure at 25 m/s; same wind on Earth is about 380 Pa</span></div>
+            <div class="fig"><b>25 m/s</b><span>maximum wind in the series, storm sols</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip d">Derived</span></div>
+          <div class="src-note">Wind rose built from <code>wind_u_ms</code> and <code>wind_v_ms</code>; dynamic pressure from <code>surface_pressure_pa</code> and temperature through the ideal gas law (air density ≈ 0.015 kg/m³).</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>Airlock vestibules face south-west with an electrostatic dust screen. Fence line staked 40 m north-east of the greenhouse trench.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">Phase 2 · Storm season, robots only</div>
+
+  <div class="stop storm">
+    <div class="sol">180<small>storm onset</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 7 · Storm rule</span><h2>How much warning do we get, and what shuts down?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>The dust goes from clear to opaque in a single sol. There is no ramp to forecast, so the rule has to be a trip: the moment optical depth crosses 1.0, the settlement is already in storm mode. Robots park on charging pads, heating switches to reactor waste heat, and every non-essential load drops.</p>
+          <div class="fork">
+            <div class="opt"><b>Forecast-led shutdown</b>Needs a lead time the data does not show.</div>
+            <div class="opt pick"><b>Zero-warning trip</b>Storm mode is a state, entered on a threshold, exited after 10 clear sols.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>0.26 → 3.0</b><span>optical depth, sol 179 to sol 180</span></div>
+            <div class="fig"><b>43 kW</b><span>mean heating load in storm for 100 people; peak 60 kW</span></div>
+            <div class="fig"><b>+50 %</b><span>rover risk score, 0.50 to 0.73 on storm sols</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip b">Pack B</span></div>
+          <div class="src-note">Onset from <code>emars_settlement_daily_summary.csv</code>; loads from <code>habitat_thermal_load_kw_100p</code>; risk from <code>logistics_duty_cycle_100p_730sol.csv</code>.</div>
+          <div class="caveat">The pack's storm barely mutes the daily swing; real storms do. Do not quote its storm thermal physics.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>The robots ride out 81 sols on reactor power. The storm rule is now proven before anyone lives under it.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">Phase 3 · Crew of 100 arrives</div>
+
+  <div class="stop">
+    <div class="sol">700<small>crew landing</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 8 · Life support sizing</span><h2>What do 100 people actually consume, and what has to be made here?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>With recovery loops running, the makeup is small enough that a single ice drill and electrolyser cover it. Food is the open loop: for the first two years it is imported, and the greenhouse is the project that closes it.</p>
+          <div class="fork">
+            <div class="opt"><b>Open loop, import everything</b>Simple, and impossible to sustain past the first resupply gap.</div>
+            <div class="opt pick"><b>Closed water and O₂, imported food, greenhouse ramping</b>Recycle what can be recycled; ship only what cannot yet be grown.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>89 kg/day</b><span>oxygen used; textbook is 84 at rest</span></div>
+            <div class="fig"><b>355 kg/day</b><span>water used, 94 % recovered</span></div>
+            <div class="fig"><b>7.6 / 20 kg</b><span>daily O₂ and water makeup, clear sols</span></div>
+            <div class="fig"><b>183 kg/day</b><span>food, all imported until crops mature</span></div>
+          </div>
+          <div class="src"><span class="chip c">Pack C</span><span class="chip x">External prior</span></div>
+          <div class="src-note">Daily rates from <code>mars500_eclss_scaled_100p_730d.csv</code>; totals cross-checked against <code>window_totals.json</code>. Per-person baselines are NASA ECLSS priors.</div>
+          <div class="caveat">Not real Mars500 telemetry; built from published per-person rates.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>One ice drill at 50 kg/day and one 20 kW electrolyser cover makeup with margin. Food stores sized at 140 t.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="sol">700–900<small>greenhouse fit-out</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 9 · Daylight</span><h2>How does sunlight reach people and plants living 4 m underground?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>Lighting the greenhouse with LEDs fed by panels would cost more power than everything else on the settlement combined. Piping the light down loses less on the way, so most of the crop area sits under fibre light pipes with LEDs only as storm backup. People get a surface sunroom behind half a metre of water, which shields as well as regolith and can be looked through.</p>
+          <div class="fork">
+            <div class="opt"><b>PV to LED</b>Roughly 10 % of collected sunlight reaches the leaf. 0.9 MW of demand.</div>
+            <div class="opt pick"><b>Fibre light pipes + water-shielded sunroom</b>30–50 % of collected light delivered; collectors need dust cleaning.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>875 kW</b><span>LED demand for 3,500 m² of crops at 250 W/m²; rest of base ≈ 230 kW</span></div>
+            <div class="fig"><b>30–50 %</b><span>light delivered by fibre pipes versus ≈ 10 % via PV and LED</span></div>
+            <div class="fig"><b>0.2 %/sol</b><span>panel obscuration from settling dust between storms</span></div>
+          </div>
+          <div class="src"><span class="chip a">Pack A</span><span class="chip d">Derived</span><span class="chip x">External prior</span></div>
+          <div class="src-note">Available light from the Pack A sky model; LED wattage and pipe efficiencies are published horticulture figures; dust settling rate is a Mars Exploration Rover prior.</div>
+        </div>
+        <div class="action"><span class="arrow">Move on →</span><span>Collectors cleaned every 20 sols by a scout rover. LEDs sized at 25 % of crop area for storm survival of seed stock only.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">Phase 4 · First storm with people inside</div>
+
+  <div class="stop storm">
+    <div class="sol">880<small>second storm season</small></div>
+    <div class="card">
+      <div class="card-head"><span class="q">Decision 10 · Living through it</span><h2>What changes inside when the sky goes dark for 81 sols?</h2></div>
+      <div class="card-body">
+        <div class="col">
+          <p>The storm mode proven by the robots now has occupants. Cabin air is the first thing to drift: ventilation rises, recovery efficiency drops, and water makeup nearly doubles. Surface trips stop. Greenhouse lighting drops to the seed-stock minimum and the reactor carries the rest.</p>
+          <div class="fork">
+            <div class="opt"><b>Keep normal operations</b>Rover risk and water makeup climb with no resupply behind them.</div>
+            <div class="opt pick"><b>Seal, shed, and wait</b>EVA suspended, greenhouse on minimum light, CO₂ scrubbing at full rate.</div>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Numbers that settled it</h3>
+          <div class="figs">
+            <div class="fig"><b>870 → 1,160 ppm</b><span>cabin CO₂ proxy, clear to storm</span></div>
+            <div class="fig"><b>1,980 → 2,430 m³/h</b><span>greenhouse ventilation demand</span></div>
+            <div class="fig"><b>33 kg/day</b><span>water makeup in storm, from 18</span></div>
+            <div class="fig"><b>0.73</b><span>rover terrain risk on storm sols</span></div>
+          </div>
+          <div class="src"><span class="chip c">Pack C</span><span class="chip b">Pack B</span></div>
+          <div class="src-note">Air and water columns from Pack C grouped by <code>dust_storm_flag</code>; risk from Pack B's trip table.</div>
+          <div class="caveat">Pack C's CO₂ proxy tops out at mild stress; a real failure mode has to be added, not read off.</div>
+        </div>
+        <div class="action"><span class="arrow">Next resupply →</span><span>The settlement exits storm mode with 60 t of food, water loops closed, and a shopping list for the next window: more light pipes, a second drill, and no hotel.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<section class="compare">
+  <h2>What Earth taught us that Mars throws out</h2>
+  <p class="lede">The same log, read as a comparison. Left is the reflex we bring from Earth; right is what the numbers above forced instead.</p>
+  <div class="cmp-grid">
+    <div class="cmp">
+      <h3>Does not carry over</h3>
+      <ul>
+        <li><b>Wind loading.</b> Earth codes size walls for hundreds of pascals. Mars peaks under 5 Pa. Dust deposition replaces wind load as the design driver.</li>
+        <li><b>Gravity holds buildings down.</b> Here 70 kPa of cabin pressure pushes up, and 3 m of cover supplies 18 kPa. Every habitat is an anchored pressure vessel in tension.</li>
+        <li><b>Windows are free.</b> Every square metre of daylight costs shielding or power. Light is piped, not framed.</li>
+        <li><b>Fire rating by wall thickness.</b> A 160 mm two-hour wall means nothing. Fire is controlled by oxygen partial pressure.</li>
+        <li><b>Concrete.</b> Needs water the loop cannot spare. Sintered regolith, sulfur concrete and basalt fibre take its place.</li>
+        <li><b>Cooling by air.</b> No convection outside. Waste heat leaves by radiators.</li>
+      </ul>
+    </div>
+    <div class="cmp">
+      <h3>Mars does better, and Earth could copy</h3>
+      <ul>
+        <li><b>Closed loops by default.</b> 94 % water and 91 % oxygen recovery are the entry requirement, not a target.</li>
+        <li><b>Heat and power as one system.</b> Reactor waste heat is the district heating from the first module.</li>
+        <li><b>Robots finish before people arrive.</b> No one lives next to a construction site.</li>
+        <li><b>Deterministic siting.</b> One wind rose, one sun path, one predictable storm season. Orientation is a calculation, not a compromise.</li>
+        <li><b>Compact by necessity.</b> Shared volume underground beats sprawl, and the walk to anything is under 200 m.</li>
+        <li><b>Build order by survival value.</b> Power, shelter, water, food, then leisure. The hotel is last on purpose.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Data: <code>melaniepreen/mars-sim-girlswhomlphysicsx-hack</code>, guided packs A, B and C. Packs A and C are simulated from EMARS and Mars500 priors; Pack B holds 48 real AI4MARS frames plus a simulated trip table and terrain grid. Derived figures use a Beer–Lambert sky model, a single-exponential regolith dose curve, and one-dimensional heat conduction. See the repo's KNOWN_ISSUES.txt before citing any number as measured.
+</footer>
+</div>

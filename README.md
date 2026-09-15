@@ -32,6 +32,14 @@ pnpm typecheck  # TypeScript
 pnpm format     # Prettier
 ```
 
+## Sol Zero Console (Track A build)
+
+Interactive presentation: ten settlement decisions from robot landing to the first crewed dust storm, each settled by numbers from the organiser packs with the source file named. Live canvases draw the real pack series (solar per sol, terrain cost map with a planned route, wind rose, storm onset, cabin CO2). Pick an option on each card to see the consequence.
+
+- Demo: `pnpm dev` then <http://localhost:3000/sol-zero-console/> (static timeline at `/sol-zero-console/timeline.html`)
+- Code and models: [ml/settlement/README.md](./ml/settlement/README.md). `python ml/settlement/run_all.py` reproduces every figure and retrains the two ML decisions (terrain cost surface + route planner; sensor-only storm detector + ECLSS forecasts).
+- Data used: Pack A EMARS weather, Pack B trip table, Pack B2 mobility grid, Pack C ECLSS log. Packs A, B2 and C are simulated; say so on stage.
+
 ## Documentation
 
 | Doc | Description |
