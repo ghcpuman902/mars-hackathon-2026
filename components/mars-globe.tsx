@@ -21,7 +21,6 @@ import {
   ScreenSpaceCameraController,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  SingleTileImageryProvider,
   SkyAtmosphere,
   UrlTemplateImageryProvider,
   Viewer,
@@ -61,6 +60,7 @@ export type MarsGlobeProps = {
   customSites: CustomSite[]
   onPick: (next: LandingPick) => void
   onCustomAdd: (lat_deg: number, lon_east_deg: number) => void
+  onReady?: () => void
   onFail?: () => void
 }
 
@@ -317,6 +317,7 @@ export const MarsGlobe = ({
   customSites,
   onPick,
   onCustomAdd,
+  onReady,
   onFail,
 }: MarsGlobeProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -326,6 +327,7 @@ export const MarsGlobe = ({
   const customRef = useRef(customSites)
   const onPickRef = useRef(onPick)
   const onCustomAddRef = useRef(onCustomAdd)
+  const onReadyRef = useRef(onReady)
   const onFailRef = useRef(onFail)
   const viewerRef = useRef<Viewer | null>(null)
   const marksKeyRef = useRef("")
@@ -455,8 +457,9 @@ export const MarsGlobe = ({
     customRef.current = customSites
     onPickRef.current = onPick
     onCustomAddRef.current = onCustomAdd
+    onReadyRef.current = onReady
     onFailRef.current = onFail
-  }, [pick, sites, customSites, onPick, onCustomAdd, onFail])
+  }, [pick, sites, customSites, onPick, onCustomAdd, onReady, onFail])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -522,18 +525,6 @@ export const MarsGlobe = ({
           },
         })
 
-        const fallback = await SingleTileImageryProvider.fromUrl(
-          "/data/mars_viking_l2.jpg",
-          {
-            rectangle: Rectangle.fromDegrees(-180, -90, 180, 90),
-            ellipsoid: Ellipsoid.MARS,
-            credit: "Viking MDIM 2.1 browse · NASA / USGS",
-          },
-        )
-        if (disposed) {
-          return
-        }
-
         const trek = new UrlTemplateImageryProvider({
           url: VIKING_TILES,
           tilingScheme,
@@ -561,7 +552,7 @@ export const MarsGlobe = ({
           ellipsoid: Ellipsoid.MARS,
           terrainProvider,
           mapProjection: new GeographicProjection(Ellipsoid.MARS),
-          baseLayer: new ImageryLayer(fallback),
+          baseLayer: new ImageryLayer(trek),
           skyAtmosphere: new SkyAtmosphere(Ellipsoid.MARS),
           sceneMode: SceneMode.COLUMBUS_VIEW,
           msaaSamples: 4,
@@ -573,7 +564,6 @@ export const MarsGlobe = ({
           return
         }
 
-        viewer.imageryLayers.addImageryProvider(trek)
         viewer.scene.globe.baseColor = Color.fromCssColorString("#8a3a1c")
         viewer.scene.globe.enableLighting = false
         viewer.scene.globe.depthTestAgainstTerrain = true
@@ -723,6 +713,7 @@ export const MarsGlobe = ({
         viewer.camera.setView({
           destination: WORLD_RECTANGLE,
         })
+        onReadyRef.current?.()
       } catch {
         onFailRef.current?.()
       }
