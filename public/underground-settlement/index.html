@@ -9,7 +9,7 @@
   :root{--soot:#0B0908;--ochre:#FF7A1A;--cyan:#3DF2E0;--alarm:#FF3B5C;--bone:#EDE3D2;--dim:#9C8B7A;--ok:#8CE07A;--magenta:#FF2BD6;color-scheme:dark}
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--soot);color:var(--bone);font-family:"JetBrains Mono",Consolas,monospace;overflow:hidden}
-  #c{position:fixed;inset:0;display:block}
+  #c{position:fixed;inset:0;display:block;width:100%;height:100%}
   .crt{position:fixed;inset:0;z-index:5;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.16) 2px 3px);mix-blend-mode:multiply}
   .vig{position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%)}
   .hud{position:fixed;z-index:6;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);pointer-events:none}
@@ -32,6 +32,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="nogl" style="display:none;position:fixed;inset:0;z-index:9;display:none;place-items:center;color:#FF3B5C;font-size:13px;letter-spacing:.1em;text-align:center;padding:24px"></div>
 <div class="vig"></div><div class="crt"></div>
 
 <div class="hud tl">
@@ -75,11 +76,12 @@ const SITES={jezero:{elev:-2500,name:"Jezero"},gale:{elev:-4400,name:"Gale"},ars
 
 /* ---------- scene ---------- */
 const canvas=document.getElementById('c');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:true});}catch(err){const d=document.getElementById('nogl');d.style.display='grid';d.textContent='WebGL unavailable: '+err.message;throw err;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.localClippingEnabled=true;
+const CUT=[new THREE.Plane(new THREE.Vector3(0,0,-1),0)]; // keep z<0 half of the ground, open the front
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x0B0908);
-scene.fog=new THREE.FogExp2(0x0B0908,0.018);
+scene.fog=new THREE.FogExp2(0x0B0908,0.010);
 const cam=new THREE.PerspectiveCamera(50,1,0.1,400);
 
 const OCHRE=0xFF7A1A,CYAN=0x3DF2E0,MAG=0xFF2BD6,ALARM=0xFF3B5C,OK=0x8CE07A;
@@ -93,15 +95,17 @@ const glow=(c,s=2)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glo
 const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xEDE3D2,size:.35,transparent:true,opacity:.7})));}
 
 /* terrain surface: displaced plane, wireframe ochre, cut away in the front half */
-const W=60,D=60,SEG=70;
+const W=60,D=60,SEG=70,DEPTH=14;
 const tg=new THREE.PlaneGeometry(W,D,SEG,SEG);tg.rotateX(-Math.PI/2);
 {const p=tg.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);const h=Math.sin(x*.21)*Math.cos(z*.17)*.9+Math.sin(x*.7+z*.4)*.25+Math.cos((x-z)*.35)*.4;p.setY(i,h);}tg.computeVertexNormals();}
-const terrain=new THREE.Mesh(tg,wire(OCHRE,.55));scene.add(terrain);
-scene.add(new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0x16110E,transparent:true,opacity:.85,polygonOffset:true,polygonOffsetFactor:1})));
+const tw=wire(OCHRE,.55);tw.clippingPlanes=CUT;const terrain=new THREE.Mesh(tg,tw);scene.add(terrain);
+scene.add(new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0x16110E,transparent:true,opacity:.92,polygonOffset:true,polygonOffsetFactor:1,clippingPlanes:CUT})));
+// section face: dark wall at z=0 so the cut reads as solid ground
+{const fg=new THREE.PlaneGeometry(W,DEPTH);const fm=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:0x1F1712,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false}));fm.position.y=-DEPTH/2;scene.add(fm);}
 
 /* regolith cut block (dark translucent slab, front face open) */
-const DEPTH=14;
-{const g=new THREE.BoxGeometry(W,DEPTH,D);const m=new THREE.Mesh(g,glass(0x8A3A1C,.08));m.position.y=-DEPTH/2;scene.add(m);
+
+{const g=new THREE.BoxGeometry(W,DEPTH,D);const gm=glass(0x8A3A1C,.10);gm.clippingPlanes=CUT;const m=new THREE.Mesh(g,gm);m.position.y=-DEPTH/2;scene.add(m);
 const e=new THREE.LineSegments(new THREE.EdgesGeometry(g),new THREE.LineBasicMaterial({color:0x8A3A1C}));e.position.y=-DEPTH/2;scene.add(e);}
 
 /* grid floor under everything */
@@ -182,7 +186,7 @@ apply('jezero');
 
 /* ---------- scan ring + orbit ---------- */
 const scan=ring(1,0,CYAN,.05);scene.add(scan);
-let theta=.6,phi=1.05,dist=62,drag=false,lx=0,ly=0,auto=true;
+let theta=Math.PI/2+.35,phi=0.98,dist=68,drag=false,lx=0,ly=0,auto=true;
 canvas.addEventListener('pointerdown',e=>{drag=true;auto=false;lx=e.clientX;ly=e.clientY;});
 addEventListener('pointerup',()=>drag=false);
 addEventListener('pointermove',e=>{if(!drag)return;theta-=(e.clientX-lx)*.006;phi=Math.max(.25,Math.min(1.45,phi+(e.clientY-ly)*.006));lx=e.clientX;ly=e.clientY;});
@@ -191,8 +195,8 @@ function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);c
 addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();
 (function loop(){requestAnimationFrame(loop);const t=clock.getElapsedTime();
-  if(auto)theta+=.0025;
-  const target=new THREE.Vector3(0,-5,0);
+  if(auto)theta=Math.PI/2+.45*Math.sin(t*.12);
+  const target=new THREE.Vector3(0,-7,0);
   cam.position.set(target.x+dist*Math.sin(phi)*Math.cos(theta),target.y+dist*Math.cos(phi),target.z+dist*Math.sin(phi)*Math.sin(theta));cam.lookAt(target);
   const s=1+((t*.6)%1)*26;scan.scale.set(s,s,1);scan.material.opacity=1-((t*.6)%1);scan.material.transparent=true;scan.position.y=habY;
   nodes.forEach((n,i)=>{const k=1+.25*Math.sin(t*3+i);n.scale.set(n.userData.s||(n.userData.s=n.scale.x),0,0);n.scale.set(n.userData.s*k,n.userData.s*k,1);});
