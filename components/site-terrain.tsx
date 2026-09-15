@@ -34,7 +34,7 @@ export const SiteTerrain = ({
     let geometry: THREE.BufferGeometry | null = null
     let material: THREE.MeshStandardMaterial | null = null
     let mesh: THREE.Mesh | null = null
-    let caveGroup: THREE.Group | null = null
+    let structureGroup: THREE.Group | null = null
     let albedo: THREE.Texture | null = null
 
     const initialize = async () => {
@@ -60,15 +60,11 @@ export const SiteTerrain = ({
 
       const scene = new THREE.Scene()
 
-      const focus = new THREE.Vector3()
-      if (terrain.caves.length > 0) {
-        for (const cave of terrain.caves) {
-          focus.x += cave.x
-          focus.y += cave.y - cave.depthM * 0.45
-          focus.z += cave.z
-        }
-        focus.divideScalar(terrain.caves.length)
-      }
+      const focus = new THREE.Vector3(
+        terrain.habitat.focusX,
+        terrain.habitat.focusY,
+        terrain.habitat.focusZ,
+      )
 
       const camera = new THREE.PerspectiveCamera(
         52,
@@ -76,11 +72,10 @@ export const SiteTerrain = ({
         8,
         terrain.spanM * 40,
       )
-      const pull = terrain.caves.length > 0 ? 0.15 : 0.22
       camera.position.set(
         focus.x - terrain.spanM * 0.08,
-        focus.y + terrain.spanM * (terrain.caves.length > 0 ? 0.11 : 0.14),
-        focus.z + terrain.spanM * pull,
+        focus.y + terrain.spanM * 0.11,
+        focus.z + terrain.spanM * 0.16,
       )
 
       geometry = new THREE.PlaneGeometry(
@@ -112,22 +107,28 @@ export const SiteTerrain = ({
         albedo.colorSpace = THREE.SRGBColorSpace
         albedo.anisotropy = 8
       }
-      const seeThrough = terrain.caves.length > 0
       material = new THREE.MeshStandardMaterial({
         map: albedo,
         vertexColors: true,
         roughness: 0.94,
         metalness: 0.02,
         flatShading: false,
-        transparent: seeThrough,
-        opacity: seeThrough ? 0.5 : 1,
-        depthWrite: !seeThrough,
-        side: seeThrough ? THREE.DoubleSide : THREE.FrontSide,
+        transparent: true,
+        opacity: 0.48,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       })
       mesh = new THREE.Mesh(geometry, material)
       scene.add(mesh)
 
-      caveGroup = new THREE.Group()
+      structureGroup = new THREE.Group()
+      const habMat = new THREE.MeshStandardMaterial({
+        color: 0xf3e6cf,
+        emissive: 0x3a2c18,
+        emissiveIntensity: 0.28,
+        roughness: 0.42,
+        metalness: 0.08,
+      })
       const roomMat = new THREE.MeshStandardMaterial({
         color: 0x7de0c6,
         emissive: 0x145246,
@@ -135,7 +136,7 @@ export const SiteTerrain = ({
         roughness: 0.35,
         metalness: 0.05,
         transparent: true,
-        opacity: 0.82,
+        opacity: 0.55,
       })
       const shaftMat = new THREE.MeshStandardMaterial({
         color: 0x9aefe0,
@@ -143,7 +144,7 @@ export const SiteTerrain = ({
         emissiveIntensity: 0.45,
         roughness: 0.4,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.45,
       })
       const tubeMat = new THREE.MeshStandardMaterial({
         color: 0x5cc4b0,
@@ -151,8 +152,17 @@ export const SiteTerrain = ({
         emissiveIntensity: 0.35,
         roughness: 0.5,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.4,
       })
+
+      for (const box of terrain.habitat.boxes) {
+        const building = new THREE.Mesh(
+          new THREE.BoxGeometry(box.sx, box.sy, box.sz),
+          habMat,
+        )
+        building.position.set(box.x, box.y, box.z)
+        structureGroup.add(building)
+      }
 
       for (const cave of terrain.caves) {
         const room = new THREE.Mesh(
@@ -184,9 +194,9 @@ export const SiteTerrain = ({
         )
         ring.rotation.x = -Math.PI / 2
         ring.position.set(cave.x, cave.y + 40, cave.z)
-        caveGroup.add(room)
-        caveGroup.add(shaft)
-        caveGroup.add(ring)
+        structureGroup.add(room)
+        structureGroup.add(shaft)
+        structureGroup.add(ring)
       }
 
       const ordered = [...terrain.caves].sort((a, b) => a.x - b.x || a.z - b.z)
@@ -218,15 +228,15 @@ export const SiteTerrain = ({
           new THREE.Vector3(0, 1, 0),
           delta.normalize(),
         )
-        caveGroup.add(tube)
+        structureGroup.add(tube)
       }
-      scene.add(caveGroup)
+      scene.add(structureGroup)
 
       const sun = new THREE.DirectionalLight(0xffd2a8, 2.1)
       sun.position.set(terrain.spanM * 0.4, terrain.spanM * 0.8, terrain.spanM * 0.15)
       scene.add(sun)
-      scene.add(new THREE.AmbientLight(0x6a4030, seeThrough ? 0.85 : 0.55))
-      scene.add(new THREE.HemisphereLight(0x6b4a38, 0x2a140c, seeThrough ? 0.7 : 0.45))
+      scene.add(new THREE.AmbientLight(0x6a4030, 0.85))
+      scene.add(new THREE.HemisphereLight(0x6b4a38, 0x2a140c, 0.7))
 
       const reduceMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
@@ -285,7 +295,7 @@ export const SiteTerrain = ({
       geometry?.dispose()
       material?.dispose()
       albedo?.dispose()
-      caveGroup?.traverse((child) => {
+      structureGroup?.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
           const childMaterial = child.material
@@ -305,14 +315,13 @@ export const SiteTerrain = ({
         ref={containerRef}
         className="h-full w-full"
         role="img"
-        aria-label="Zoomed Mars terrain. Drag to orbit. Scroll to zoom. On cave sites the ground is faded so rooms under the pits show through."
+        aria-label="Zoomed Mars terrain with a buried 100-person habitat. Drag to orbit. Scroll to zoom. The ground is faded so the rooms show through."
       />
-      {caves.length > 0 ? (
-        <p className="pointer-events-none absolute bottom-3 left-3 max-w-sm text-xs text-stone-400">
-          Teal rooms sit under the pits. The ground is faded so you can see
-          them. {CAVES_CREDIT}
-        </p>
-      ) : null}
+      <p className="pointer-events-none absolute bottom-3 left-3 max-w-sm text-xs text-stone-400">
+        Cream boxes are the 100-person rooms. The ground is faded so you can
+        see them.
+        {caves.length > 0 ? ` Teal is the published pit. ${CAVES_CREDIT}` : ""}
+      </p>
     </div>
   )
 }

@@ -43,6 +43,23 @@ export type CaveMarker = {
   roomRM: number
 }
 
+export type HabitatBox = {
+  x: number
+  y: number
+  z: number
+  sx: number
+  sy: number
+  sz: number
+  kind: "hub" | "wing" | "link" | "shaft"
+}
+
+export type HabitatPlan = {
+  boxes: HabitatBox[]
+  focusX: number
+  focusY: number
+  focusZ: number
+}
+
 export type LocalTerrain = {
   positions: Float32Array
   colors: Float32Array
@@ -50,6 +67,80 @@ export type LocalTerrain = {
   minH: number
   maxH: number
   caves: CaveMarker[]
+  habitat: HabitatPlan
+}
+
+export const layoutHabitat = (
+  spanM: number,
+  surfaceY: number,
+  caves: CaveMarker[],
+): HabitatPlan => {
+  const unit = spanM * 0.016
+  let cx = 0
+  let cz = 0
+  let surface = surfaceY
+  let bury = Math.max(spanM * 0.02, unit * 1.3)
+  if (caves.length > 0) {
+    const home = caves.reduce((best, cave) =>
+      cave.roomRM > best.roomRM ? cave : best,
+    )
+    cx = home.x
+    cz = home.z
+    surface = home.y
+    bury = home.depthM * 0.82
+  }
+  const floorY = surface - bury
+  const hubH = unit * 0.72
+  const wingH = unit * 0.55
+  const linkH = unit * 0.28
+  const boxes: HabitatBox[] = [
+    {
+      x: cx,
+      y: floorY + hubH / 2,
+      z: cz,
+      sx: unit * 1.7,
+      sy: hubH,
+      sz: unit * 1.7,
+      kind: "hub",
+    },
+  ]
+  const wings = [
+    { dx: unit * 2.5, dz: 0, sx: unit * 2.3, sz: unit * 0.72 },
+    { dx: -unit * 2.5, dz: 0, sx: unit * 2.3, sz: unit * 0.72 },
+    { dx: 0, dz: unit * 2.2, sx: unit * 0.72, sz: unit * 1.9 },
+    { dx: 0, dz: -unit * 2.2, sx: unit * 0.72, sz: unit * 1.9 },
+  ]
+  for (const wing of wings) {
+    boxes.push({
+      x: cx + wing.dx,
+      y: floorY + wingH / 2,
+      z: cz + wing.dz,
+      sx: wing.sx,
+      sy: wingH,
+      sz: wing.sz,
+      kind: "wing",
+    })
+    boxes.push({
+      x: cx + wing.dx * 0.48,
+      y: floorY + linkH / 2,
+      z: cz + wing.dz * 0.48,
+      sx: wing.dx !== 0 ? unit * 0.95 : unit * 0.3,
+      sy: linkH,
+      sz: wing.dz !== 0 ? unit * 0.95 : unit * 0.3,
+      kind: "link",
+    })
+  }
+  const shaftH = bury + hubH
+  boxes.push({
+    x: cx + unit * 0.85,
+    y: floorY + shaftH / 2,
+    z: cz + unit * 0.85,
+    sx: unit * 0.24,
+    sy: shaftH,
+    sz: unit * 0.24,
+    kind: "shaft",
+  })
+  return { boxes, focusX: cx, focusY: floorY + hubH / 2, focusZ: cz }
 }
 
 const hash2 = (x: number, y: number) => {
@@ -221,5 +312,10 @@ export const buildLocalTerrain = (
     }
   })
 
-  return { positions, colors, spanM, minH, maxH, caves: caveMarkers }
+  const midCell = Math.floor(cells / 2)
+  const midIndex = midCell * (cells + 1) + midCell
+  const surfaceY = (heights[midIndex] - mid) * exaggerate
+  const habitat = layoutHabitat(spanM, surfaceY, caveMarkers)
+
+  return { positions, colors, spanM, minH, maxH, caves: caveMarkers, habitat }
 }
