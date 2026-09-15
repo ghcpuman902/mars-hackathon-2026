@@ -34,7 +34,6 @@ export const SiteTerrain = ({
     let geometry: THREE.BufferGeometry | null = null
     let material: THREE.MeshStandardMaterial | null = null
     let mesh: THREE.Mesh | null = null
-    let underlay: THREE.Mesh | null = null
     let caveGroup: THREE.Group | null = null
     let albedo: THREE.Texture | null = null
 
@@ -61,16 +60,27 @@ export const SiteTerrain = ({
 
       const scene = new THREE.Scene()
 
+      const focus = new THREE.Vector3()
+      if (terrain.caves.length > 0) {
+        for (const cave of terrain.caves) {
+          focus.x += cave.x
+          focus.y += cave.y - cave.depthM * 0.45
+          focus.z += cave.z
+        }
+        focus.divideScalar(terrain.caves.length)
+      }
+
       const camera = new THREE.PerspectiveCamera(
-        55,
+        52,
         container.clientWidth / container.clientHeight,
         8,
         terrain.spanM * 40,
       )
+      const pull = terrain.caves.length > 0 ? 0.12 : 0.22
       camera.position.set(
-        -terrain.spanM * 0.04,
-        terrain.spanM * 0.14,
-        -terrain.spanM * 0.28,
+        focus.x - terrain.spanM * 0.03,
+        focus.y + terrain.spanM * (terrain.caves.length > 0 ? 0.2 : 0.14),
+        focus.z + terrain.spanM * pull,
       )
 
       geometry = new THREE.PlaneGeometry(
@@ -88,7 +98,7 @@ export const SiteTerrain = ({
 
       try {
         albedo = await new THREE.TextureLoader().loadAsync(
-          vikingTileUrl(lat_deg, lon_east_deg, 4),
+          vikingTileUrl(lat_deg, lon_east_deg, 5),
         )
       } catch {
         albedo = null
@@ -102,71 +112,132 @@ export const SiteTerrain = ({
         albedo.colorSpace = THREE.SRGBColorSpace
         albedo.anisotropy = 8
       }
+      const seeThrough = terrain.caves.length > 0
       material = new THREE.MeshStandardMaterial({
         map: albedo,
         vertexColors: true,
         roughness: 0.94,
         metalness: 0.02,
         flatShading: false,
+        transparent: seeThrough,
+        opacity: seeThrough ? 0.5 : 1,
+        depthWrite: !seeThrough,
+        side: seeThrough ? THREE.DoubleSide : THREE.FrontSide,
       })
       mesh = new THREE.Mesh(geometry, material)
       scene.add(mesh)
 
-      underlay = new THREE.Mesh(
-        new THREE.CircleGeometry(terrain.spanM * 3, 64),
-        new THREE.MeshStandardMaterial({
-          color: 0x4a2414,
-          roughness: 1,
-          metalness: 0,
-        }),
-      )
-      underlay.rotation.x = -Math.PI / 2
-      underlay.position.y = -terrain.spanM * 0.01
-      scene.add(underlay)
-
       caveGroup = new THREE.Group()
+      const roomMat = new THREE.MeshStandardMaterial({
+        color: 0x7de0c6,
+        emissive: 0x145246,
+        emissiveIntensity: 0.7,
+        roughness: 0.35,
+        metalness: 0.05,
+        transparent: true,
+        opacity: 0.82,
+      })
+      const shaftMat = new THREE.MeshStandardMaterial({
+        color: 0x9aefe0,
+        emissive: 0x1c5c50,
+        emissiveIntensity: 0.45,
+        roughness: 0.4,
+        transparent: true,
+        opacity: 0.55,
+      })
+      const tubeMat = new THREE.MeshStandardMaterial({
+        color: 0x5cc4b0,
+        emissive: 0x0d3a34,
+        emissiveIntensity: 0.35,
+        roughness: 0.5,
+        transparent: true,
+        opacity: 0.5,
+      })
+
       for (const cave of terrain.caves) {
+        const room = new THREE.Mesh(
+          new THREE.SphereGeometry(cave.roomRM, 28, 18),
+          roomMat,
+        )
+        room.position.set(cave.x, cave.y - cave.depthM, cave.z)
+        room.scale.set(1, 0.62, 1.15)
+        const shaft = new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            cave.radiusM * 0.35,
+            cave.roomRM * 0.28,
+            cave.depthM,
+            16,
+            1,
+            true,
+          ),
+          shaftMat,
+        )
+        shaft.position.set(cave.x, cave.y - cave.depthM * 0.5, cave.z)
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(cave.radiusM * 0.55, cave.radiusM, 36),
+          new THREE.RingGeometry(cave.radiusM * 0.28, cave.radiusM * 0.85, 32),
           new THREE.MeshBasicMaterial({
-            color: 0x7de0c6,
+            color: 0xb8fff2,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.9,
+            opacity: 0.95,
           }),
         )
         ring.rotation.x = -Math.PI / 2
-        ring.position.set(cave.x, cave.y, cave.z)
-        const beam = new THREE.Mesh(
-          new THREE.CylinderGeometry(cave.radiusM * 0.12, cave.radiusM * 0.12, cave.radiusM * 1.4, 10),
-          new THREE.MeshBasicMaterial({
-            color: 0x7de0c6,
-            transparent: true,
-            opacity: 0.35,
-          }),
-        )
-        beam.position.set(cave.x, cave.y + cave.radiusM * 0.5, cave.z)
+        ring.position.set(cave.x, cave.y + 40, cave.z)
+        caveGroup.add(room)
+        caveGroup.add(shaft)
         caveGroup.add(ring)
-        caveGroup.add(beam)
+      }
+
+      const ordered = [...terrain.caves].sort((a, b) => a.x - b.x || a.z - b.z)
+      for (let i = 0; i < ordered.length - 1; i += 1) {
+        const from = ordered[i]
+        const to = ordered[i + 1]
+        const start = new THREE.Vector3(
+          from.x,
+          from.y - from.depthM,
+          from.z,
+        )
+        const end = new THREE.Vector3(to.x, to.y - to.depthM, to.z)
+        const delta = end.clone().sub(start)
+        const length = delta.length()
+        if (length < 80) {
+          continue
+        }
+        const tube = new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            Math.min(from.roomRM, to.roomRM) * 0.22,
+            Math.min(from.roomRM, to.roomRM) * 0.22,
+            length,
+            12,
+          ),
+          tubeMat,
+        )
+        tube.position.copy(start.clone().add(end).multiplyScalar(0.5))
+        tube.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          delta.normalize(),
+        )
+        caveGroup.add(tube)
       }
       scene.add(caveGroup)
 
       const sun = new THREE.DirectionalLight(0xffd2a8, 2.1)
       sun.position.set(terrain.spanM * 0.4, terrain.spanM * 0.8, terrain.spanM * 0.15)
       scene.add(sun)
-      scene.add(new THREE.AmbientLight(0x6a4030, 0.55))
-      scene.add(new THREE.HemisphereLight(0x6b4a38, 0x2a140c, 0.45))
+      scene.add(new THREE.AmbientLight(0x6a4030, seeThrough ? 0.85 : 0.55))
+      scene.add(new THREE.HemisphereLight(0x6b4a38, 0x2a140c, seeThrough ? 0.7 : 0.45))
 
       const reduceMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches
       controls = new OrbitControls(camera, renderer.domElement)
-      controls.target.set(0, 0, 0)
+      controls.target.copy(focus)
       controls.enableDamping = !reduceMotion
       controls.dampingFactor = 0.08
-      controls.maxPolarAngle = Math.PI / 2.08
-      controls.minDistance = terrain.spanM * 0.06
-      controls.maxDistance = terrain.spanM * 2.4
+      controls.maxPolarAngle = Math.PI * 0.9
+      controls.minDistance = terrain.spanM * 0.05
+      controls.maxDistance = terrain.spanM * 1.6
       controls.update()
 
       const handleResize = () => {
@@ -214,15 +285,6 @@ export const SiteTerrain = ({
       geometry?.dispose()
       material?.dispose()
       albedo?.dispose()
-      if (underlay) {
-        underlay.geometry.dispose()
-        const underlayMaterial = underlay.material
-        if (Array.isArray(underlayMaterial)) {
-          underlayMaterial.forEach((item) => item.dispose())
-        } else {
-          underlayMaterial.dispose()
-        }
-      }
       caveGroup?.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
@@ -243,11 +305,12 @@ export const SiteTerrain = ({
         ref={containerRef}
         className="h-full w-full"
         role="img"
-        aria-label="Zoomed Mars terrain. Drag to orbit. Scroll to zoom."
+        aria-label="Zoomed Mars terrain. Drag to orbit. Scroll to zoom. On cave sites the ground is faded so rooms under the pits show through."
       />
       {caves.length > 0 ? (
         <p className="pointer-events-none absolute bottom-3 left-3 max-w-sm text-xs text-stone-400">
-          Teal rings are THEMIS cave pits. {CAVES_CREDIT}
+          Teal rooms sit under the pits. The ground is faded so you can see
+          them. {CAVES_CREDIT}
         </p>
       ) : null}
     </div>

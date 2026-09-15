@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { SiteReport } from "@/components/site-report"
-import { cavesNear } from "@/lib/mars-caves"
+import { caveFact, cavesNear, nearestCave } from "@/lib/mars-caves"
 import {
   formatLatLon,
   type LandingPick,
@@ -16,8 +16,6 @@ import {
   loadMola4ppd,
   sampleMolaBilinear,
 } from "@/lib/mola-heightmap"
-import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
-
 const SiteTerrain = dynamic(
   () => import("@/components/site-terrain").then((mod) => mod.SiteTerrain),
   {
@@ -34,16 +32,20 @@ export type SiteInspectProps = {
   siteId: string
   lat_deg: number
   lon_east_deg: number
+  initialSite?: LandingSite
 }
 
 export const SiteInspect = ({
   siteId,
   lat_deg,
   lon_east_deg,
+  initialSite,
 }: SiteInspectProps) => {
   const router = useRouter()
-  const [site, setSite] = useState<LandingSite>()
-  const [elevationM, setElevationM] = useState<number | null>(null)
+  const [site, setSite] = useState<LandingSite | undefined>(initialSite)
+  const [elevationM, setElevationM] = useState<number | null>(
+    initialSite?.elevation_m ?? null,
+  )
   const pick = useMemo<LandingPick>(
     () => ({ lat_deg, lon_east_deg, siteId }),
     [lat_deg, lon_east_deg, siteId],
@@ -52,8 +54,30 @@ export const SiteInspect = ({
     () => cavesNear(lat_deg, lon_east_deg, 4),
     [lat_deg, lon_east_deg],
   )
+  const namedCave = useMemo(
+    () => nearestCave(lat_deg, lon_east_deg),
+    [lat_deg, lon_east_deg],
+  )
+  const reportSite = useMemo<LandingSite | undefined>(() => {
+    if (!namedCave) {
+      return site
+    }
+    return {
+      id: namedCave.id,
+      name: namedCave.name,
+      lat_deg: namedCave.lat_deg,
+      lon_east_deg: namedCave.lon_east_deg,
+      archetype: "lava_tube",
+      why_it_matters: caveFact(namedCave),
+      tracks: "architecture",
+      elevation_m: site?.elevation_m ?? null,
+      slope_deg_local: site?.slope_deg_local ?? null,
+      ice_0_1m: site?.ice_0_1m ?? null,
+      ice_1_5m: site?.ice_1_5m ?? null,
+      ice_gt_5m: site?.ice_gt_5m ?? null,
+    }
+  }, [namedCave, site])
   const isCustom = siteId === "custom"
-  const area = NASA_AREA_BY_ID[siteId]
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -107,7 +131,7 @@ export const SiteInspect = ({
 
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-4 sm:p-6">
         <h1 className="text-xl font-medium tracking-tight sm:text-2xl">
-          {site?.name ?? (isCustom ? "Custom site" : area ? siteId : "Site")}
+          {namedCave?.name ?? site?.name ?? (isCustom ? "Custom site" : "Site")}
         </h1>
       </header>
 
@@ -119,13 +143,17 @@ export const SiteInspect = ({
             </p>
             <Link
               href="/"
-              className="text-sm text-stone-300 underline-offset-2 hover:underline"
+              className="relative z-30 text-sm text-stone-300 underline-offset-2 hover:underline"
+              onClick={(event) => {
+                event.preventDefault()
+                router.push("/")
+              }}
             >
               Back to map
             </Link>
           </div>
           <SiteReport
-            site={site}
+            site={reportSite}
             pick={pick}
             elevationM={site?.elevation_m ?? elevationM}
             caves={nearbyCaves}

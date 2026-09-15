@@ -2,19 +2,34 @@ import { sampleMolaBilinear, type MolaGrid } from "@/lib/mola-heightmap"
 import type { MarsCave } from "@/lib/mars-caves"
 
 export const TERRAIN_CELLS = 192
-export const TERRAIN_SPAN_DEG = 5.2
+export const TERRAIN_SPAN_DEG = 2.2
+export const CAVE_FRAME_DEG = 1.25
+
+export const cavesInFrame = (
+  caves: MarsCave[],
+  lat0: number,
+  lonEast0: number,
+  maxDeg = CAVE_FRAME_DEG,
+) => {
+  return caves.filter((cave) => {
+    const dlat = cave.lat_deg - lat0
+    const dlon = ((cave.lon_east_deg - lonEast0 + 540) % 360) - 180
+    return Math.hypot(dlat, dlon) <= maxDeg
+  })
+}
 
 export const spanForCaves = (caves: MarsCave[], lat0: number, lonEast0: number) => {
-  if (caves.length === 0) {
+  const local = cavesInFrame(caves, lat0, lonEast0)
+  if (local.length === 0) {
     return TERRAIN_SPAN_DEG
   }
-  let span = TERRAIN_SPAN_DEG
-  for (const cave of caves) {
+  let span = 0.7
+  for (const cave of local) {
     const dlat = Math.abs(cave.lat_deg - lat0)
     const dlon = Math.abs(((cave.lon_east_deg - lonEast0 + 540) % 360) - 180)
-    span = Math.max(span, (dlat + 0.8) * 2, (dlon + 0.8) * 2)
+    span = Math.max(span, (dlat + 0.28) * 2, (dlon + 0.28) * 2)
   }
-  return Math.min(span, 8)
+  return Math.min(span, 2.6)
 }
 
 export type CaveMarker = {
@@ -24,6 +39,8 @@ export type CaveMarker = {
   y: number
   z: number
   radiusM: number
+  depthM: number
+  roomRM: number
 }
 
 export type LocalTerrain = {
@@ -98,6 +115,7 @@ export const buildLocalTerrain = (
   caves: MarsCave[],
 ): LocalTerrain => {
   const cells = TERRAIN_CELLS
+  const localCaves = cavesInFrame(caves, lat0, lonEast0)
   const spanDeg = spanForCaves(caves, lat0, lonEast0)
   const heights = new Float32Array((cells + 1) * (cells + 1))
   const caveMask = new Float32Array(heights.length)
@@ -114,16 +132,16 @@ export const buildLocalTerrain = (
       h += fbm(lon * 14, lat * 14) * 55
       h += fbm(lon * 40, lat * 40) * 18
       let caveAmt = 0
-      for (const cave of caves) {
+      for (const cave of localCaves) {
         const dlat = (lat - cave.lat_deg) * metresPerDeg
         const dlon = ((lon - cave.lon_east_deg + 540) % 360) - 180
         const dx = dlon * metresPerDeg
         const dist = Math.hypot(dlat, dx)
-        const radius = Math.max(900, cave.diameter_m * 6)
+        const radius = Math.max(400, cave.diameter_m * 3)
         if (dist < radius) {
           const t = 1 - dist / radius
           const bowl = t * t * (3 - 2 * t)
-          const depth = Math.max(cave.min_depth_m ?? 80, 180) * 4
+          const depth = Math.max(cave.min_depth_m ?? 80, 80) * 2
           h -= depth * bowl
           caveAmt = Math.max(caveAmt, bowl)
         }
@@ -173,7 +191,7 @@ export const buildLocalTerrain = (
     }
   }
 
-  const caveMarkers: CaveMarker[] = caves.map((cave) => {
+  const caveMarkers: CaveMarker[] = localCaves.map((cave) => {
     const x =
       (((cave.lon_east_deg - lonEast0 + 540) % 360) - 180) * metresPerDeg
     const z = (lat0 - cave.lat_deg) * metresPerDeg
@@ -186,13 +204,20 @@ export const buildLocalTerrain = (
       Math.max(0, Math.round(((z / spanM) + 0.5) * cells)),
     )
     const i = row * (cells + 1) + col
+    const surfaceY = (heights[i] - mid) * exaggerate
+    const depthM = Math.max(
+      (cave.min_depth_m ?? 80) * exaggerate * 2.2,
+      spanM * 0.03,
+    )
     return {
       id: cave.id,
       name: cave.name,
       x,
-      y: (heights[i] - mid) * exaggerate + 80,
+      y: surfaceY,
       z,
-      radiusM: Math.max(cave.diameter_m * 4, spanM * 0.016),
+      radiusM: Math.max(cave.diameter_m * 2.2, spanM * 0.008),
+      depthM,
+      roomRM: Math.max(cave.diameter_m * 6, spanM * 0.014),
     }
   })
 

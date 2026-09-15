@@ -74,6 +74,7 @@ export default async function Page({ params, searchParams }: PageProps) {
       siteId={site.id}
       lat_deg={site.lat_deg}
       lon_east_deg={site.lon_east_deg}
+      initialSite={site}
     />
   )
 }

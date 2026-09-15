@@ -94,5 +94,5 @@ Q&A: data honesty, feasibility, what you would do with another day.
 - [x] `LOCKS.md` or this file has track + data filled
 - [x] README updated
 - [x] Demo path works on a cold start
-- [ ] Commits staged and pushed
+- [x] Commits staged and pushed
 - [ ] Laptop on the demo URL, not the editor

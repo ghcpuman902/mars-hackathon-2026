@@ -5,7 +5,7 @@ import type { PointerEvent } from "react"
 
 import { SiteMark } from "@/components/site-mark"
 import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
-import { MARS_CAVES } from "@/lib/mars-caves"
+import { caveFact, caveDistanceDeg, MARS_CAVES } from "@/lib/mars-caves"
 import {
   customSiteHref,
   latLonToUv,
@@ -74,6 +74,15 @@ export const MarsMap2D = ({
     }
     const next = pointFromEvent(event)
     if (!next) {
+      return
+    }
+    const cave = MARS_CAVES.find((item) => caveDistanceDeg(item, next.lat_deg, next.lon_east_deg) < 0.8)
+    if (cave) {
+      onPick({
+        lat_deg: cave.lat_deg,
+        lon_east_deg: cave.lon_east_deg,
+        siteId: "custom",
+      })
       return
     }
     const site = sites.find((item) => {
@@ -156,10 +165,17 @@ export const MarsMap2D = ({
       {MARS_CAVES.map((cave) => {
         const uv = latLonToUv(cave.lat_deg, cave.lon_east_deg)
         return (
-          <span
+          <SiteMark
             key={cave.id}
-            aria-hidden
-            className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-300"
+            href={customSiteHref(cave.lat_deg, cave.lon_east_deg)}
+            name={cave.name}
+            lat_deg={cave.lat_deg}
+            lon_east_deg={cave.lon_east_deg}
+            fact={caveFact(cave)}
+            role="cave_shelter"
+            compact
+            selected={caveDistanceDeg(cave, pick.lat_deg, pick.lon_east_deg) < 0.08}
+            className="absolute -translate-x-1/2 -translate-y-[calc(100%+0.35rem)]"
             style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}
           />
         )

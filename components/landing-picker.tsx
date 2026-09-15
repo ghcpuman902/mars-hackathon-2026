@@ -80,7 +80,7 @@ export const LandingPicker = () => {
       <div
         className="absolute inset-0"
         role="application"
-        aria-label="Mars map of NASA landing areas. Click a label to inspect. Long-press to add a custom site."
+        aria-label="Mars map of NASA landing areas and cave pits. Click a label or cave to inspect. Long-press to add a custom site."
       >
         {engine === "cesium" ? (
           <MarsGlobe
@@ -122,7 +122,7 @@ export const LandingPicker = () => {
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-stone-500">
-            Click a label to inspect. Long-press empty ground to add a site.
+            Click a label or teal cave pit to inspect. Long-press empty ground to add a site.
           </p>
         </div>
       </aside>
