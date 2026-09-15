@@ -70,17 +70,15 @@ source .venv/bin/activate
 
 ## Demo screenshots
 
-If the network dies, these are the beats.
+If the network dies, walk these in order. Same path as the stage demo.
 
-![Globe of NASA landing areas](docs/hackathon/demo/01-globe.png)
+![All NASA pins on the globe. White is Jezero. Teal is the recommended cave.](docs/hackathon/demo/01-globe.png)
 
-![Jezero crater zoomed on the globe](docs/hackathon/demo/03-jezero-crater.png)
+![Zoom Jezero. This is the flown landing you inspect first.](docs/hackathon/demo/02-jezero-crater.png)
 
-![Flat Viking map of the same NASA pins](docs/hackathon/demo/04-map-2d.png)
+![Inspect Jezero. Bury 2.4 m. No cave roof here.](docs/hackathon/demo/03-jezero-inspect.png)
 
-![Inspect view with the buried habitat on Jezero](docs/hackathon/demo/02-inspect.png)
-
-![Wider MOLA patch so the crater rims read](docs/hackathon/demo/05-inspect-wide.png)
+![Inspect Arsia. Use Annie. The roof already beats a dirt pile.](docs/hackathon/demo/04-annie-inspect.png)
 
 ## Three minutes on stage
 
