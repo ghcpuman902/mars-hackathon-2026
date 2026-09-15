@@ -45,6 +45,11 @@ pnpm format     # Prettier
 | [docs/design-system.md](./docs/design-system.md) | Tailwind and shadcn conventions |
 | [docs/coding-style.md](./docs/coding-style.md) | TypeScript and React style |
 | [docs/product-principles.md](./docs/product-principles.md) | Scoping and shipping principles |
+| [docs/hackathon.md](./docs/hackathon.md) | Event brief, tracks, rubric, tonight's clock |
+| [docs/hackathon/datasets.md](./docs/hackathon/datasets.md) | Local Mars rasters, official packs, and ML env |
+| [docs/hackathon/official-packs.md](./docs/hackathon/official-packs.md) | Organiser guided packs and per-track discovery |
+| [docs/hackathon/final-checklist.md](./docs/hackathon/final-checklist.md) | Freeze checklist: track, data used, README, demo |
+| [docs/skills.md](./docs/skills.md) | Global skills for locking the goal and polishing UI |
 
 ## Agent context
 

@@ -1,0 +1,102 @@
+KNOWN ISSUES - adversarial check (hack night)
+=============================================
+Checked locally against the Guided Trajectory packs before/after the v2 push.
+These are problems participants (and judges) can hit. Design around them; do
+not pretend the packs are flight-qualified science products.
+
+-------------------------------------------------------------------------------
+Repo / process risks
+-------------------------------------------------------------------------------
+[HIGH] Tracks A and C are simulated, not raw EMARS / HREDA downloads.
+ Judges may ask "is this real Mars data?" Answer honestly: climate /
+ ECLSS priors + hack-ready tables. Cite CREDITS.txt.
+
+[HIGH] Upstream licenses are incomplete or gated (AI4MARS "license not
+ specified" on NASA portal; EMARS landing page has no clear open
+ license badge; HREDA needs login and often CC BY-NC). Fine for a
+ same-day hack with attribution; risky if someone republishes the
+ pack commercially or strips CREDITS.
+
+[MED] README previously said "coming next" for data; that is fixed, but
+ zips + folders both live in guided-packs/ (duplicate bulk). Download
+ the zip OR clone and use the folder, not both blindly.
+
+[MED] No pretrained checkpoints yet. Crews still train or rule-based demo
+ in ~2h10m. Do not promise "load weights and go" unless those land.
+
+-------------------------------------------------------------------------------
+Track A - EMARS-informed weather
+-------------------------------------------------------------------------------
+[HIGH] NOT a NetCDF extract. Numbers are generator output shaped like Mars
+ climate (thin CO2 pressure ~560-670 Pa, cold nights, dust storm flag).
+
+[HIGH] Storm season (sols 180-260) raises dust and thermal load, but diurnal
+ temperature amplitude barely changes (~57 C clear vs ~58 C storm).
+ Real global dust storms usually mute day-night swing. Do not use this
+ pack to "prove" storm thermal physics.
+
+[MED] Uses 24 civil hours per sol. A real Mars sol is ~24 h 40 m. Timelines
+ that need exact solar longitude / SPICE should use Open Sandbox tools
+ (SpiceyPy), not this CSV alone.
+
+[MED] Hourly temps stay cold (about -100 C to -21 C). Brief notes equatorial
+ noon can approach +20 C; this site series never does. Habitat heating
+ loads may be pessimistic.
+
+[LOW] Single lat/lon (18.4, 77.5 Jezero-band proxy). No spatial grid for
+ CFD / multi-module layout across the crater.
+
+[OK] 17,520 rows, no nulls, no duplicate sol-hour keys, storm window present
+ (81 sols), 100-person thermal load column always non-negative.
+
+-------------------------------------------------------------------------------
+Track B - AI4MARS + logistics
+-------------------------------------------------------------------------------
+[HIGH] Only 48 real labeled frames (plus 12 synth). Far too small to train a
+ serious segmenter from scratch in one evening. Prefer transfer learning,
+ few-shot scoring, or hand-tuned rules on top of labels.
+
+[HIGH] Synthetic masks are IDENTICAL across synth_clear_* files (same pixel
+ class map). Dust frames only change the RGB. Models can memorize synth
+ geometry; do not report synth-only accuracy as terrain intelligence.
+
+[HIGH] logistics_duty_cycle_100p_730sol.csv is fully simulated (trip counts,
+ risk, energy, battery SOH). It is a scenario scaffold, not rover ops
+ telemetry. Battery decay is linear and never fails a trip.
+
+[MED] Images resized to 256x256. Fine for demos; bad for claiming HiRISE /
+ Navcam-native resolution.
+
+[MED] HF mirror (hassanjbara/AI4MARS) is unofficial. Prefer citing NASA /
+ Zenodo AI4MARS as the scientific source.
+
+[OK] Every image has a matching label stem; label values include 0-3 and 255;
+ 3,130 trips cover all 730 sols; risk in [0,1]; no nulls.
+
+-------------------------------------------------------------------------------
+Track C - Mars500 / HREDA-informed ECLSS
+-------------------------------------------------------------------------------
+[HIGH] Not real Mars500 telemetry. Built from published per-person rates +
+ activity / storm switches. Cannot support medical or life-safety claims.
+
+[MED] cabin_co2_ppm_proxy tops out ~1200 ppm in-pack. That is mild stress,
+ not a runaway cabin failure. Greenhouse "crisis" demos may need you to
+ amplify the proxy or add failure modes yourself.
+
+[MED] Storm solar_availability is a flat 0.25. Real storms vary; microgrid
+ teams should treat this as a coarse switch, not irradiance physics.
+
+[MED] Mean O2 use ~89 kg/day for 100 people (activity_level often >1), above
+ the 0.84 kg/person-day textbook baseline (~84 kg/day). Document your
+ assumption if judges check the arithmetic.
+
+[OK] 730 days, crew_size=100 constant, 81 storm days, no nulls, makeup mass
+ never exceeds consumption, ventilation rises in storm.
+
+-------------------------------------------------------------------------------
+What still works for the hack
+-------------------------------------------------------------------------------
+Use the packs as shared assumptions so every crew sizes for 100 people,
+730 sols, and one dust season. Pair ML outputs with CAD / UI (see README).
+Cite CREDITS.txt. Prefer impactful demos over claiming scientific novelty
+from these tables alone.

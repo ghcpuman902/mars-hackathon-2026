@@ -1,0 +1,13 @@
+---
+description: Three.js TSL / WebGPU language notes
+globs: components/**/*globe*.tsx,components/**/*three*.tsx
+alwaysApply: false
+---
+
+When writing Three.js shaders or point-cloud/WebGPU code, follow the TSL rules in `.cursor/knowledge/tsl.md` (copied from `tsl-dither`).
+
+- Import from `three/webgpu` and `three/tsl`. Never `three/nodes`. Never `import * as THREE from "three"` for a new renderer.
+- Use `THREE.WebGPURenderer`. Always `await renderer.init()` before the first render or compute.
+- Do not use R3F/`THREE.WebGLRenderer` for new 3D. That path hits deprecated `THREE.Clock` on r181+ and loses the GPU context under HMR.
+- Call `renderer.setAnimationLoop(null)`, dispose geometries/materials/textures, then `renderer.dispose()` on unmount.
+- After any `await`, bail if the effect already cleaned up.

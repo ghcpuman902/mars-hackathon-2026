@@ -46,3 +46,18 @@ LOCAL_NOTES.md
 PUSH_NOTES.md
 VERCEL_PRIVATE_NOTES.md
 scratch/
+
+# local Python / Mars data (large rasters stay on disk, not in git)
+.venv/
+__pycache__/
+*.pyc
+data/raw/mola/
+data/raw/swim/
+data/raw/weather/
+data/raw/craters/
+data/raw/tes/
+data/raw/official-packs/zips/
+data/raw/official-packs/extracted/
+data/processed/
+public/data/swim_*.png
+public/cesium/

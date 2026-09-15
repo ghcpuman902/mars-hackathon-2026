@@ -1,0 +1,21 @@
+id,name,lat_deg,lon_east_deg,archetype,why_it_matters,tracks
+jezero,Jezero crater,18.38,77.58,crater_floor,"Perseverance landing site. Deltaic sediments plus nearby highlands. Known ground truth for a first city-planning demo.",architecture;vehicles
+gale,Gale crater,-5.4,137.8,crater_floor,"Curiosity site. Long REMS weather record. Useful for thermal and dust baselines.",life_support;architecture
+oxia,Oxia Planum,18.2,335.4,sedimentary_plain,"ExoMars Rosalind Franklin landing region. Clay-bearing and relatively low.",architecture;life_support
+mawrth,Mawrth Vallis,22.3,343.5,sedimentary_plain,"Phyllosilicate-rich and often shortlisted for landing. Contrast to ice-rich mid-latitudes.",architecture
+arcadia,Arcadia Planitia,40.0,190.0,ice_rich_plain,"SWIM-favoured mid-latitude ice. Classic ISRU water target.",life_support;architecture
+deuteronilus,Deuteronilus Mensae,44.0,25.0,glacial_fretted,"Lobate debris aprons and buried ice. Mid-latitude glacier-like forms.",life_support;architecture
+phlegra,Phlegra Montes,36.0,160.0,ice_rich_highland,"SWIM-style mid-latitude ice province with relief for shelter.",life_support;architecture
+utopia,Utopia Planitia,45.0,110.0,ice_rich_basin,"Vast northern basin. Ice plus flat ground. InSight landed further south in Elysium.",life_support;vehicles
+hellas,Hellas Planitia,-42.4,70.5,low_basin,"Deepest large basin. Highest surface pressure. Cold trap and dust risk.",architecture;life_support
+isidis,Isidis Planitia,12.9,87.0,low_basin,"Next to Jezero. Low, broad, and a plausible regional logistics hub.",vehicles;architecture
+elysium,Elysium Planitia,3.0,155.0,volcanic_plain,"InSight landing region. Relatively flat volcanic plains.",architecture;vehicles
+acidalia,Acidalia Planitia,50.0,330.0,northern_plain,"Northern lowlands. Ice-relevant. Often discussed for settlement belts.",life_support
+vastitas,Vastitas Borealis,70.0,300.0,polar_lowland,"High-latitude ice certainty, poor solar winter, hard landing.",life_support
+south_pld,South polar layered deposits,-80.0,0.0,polar_ice,"Near-surface ice and CO2. Extreme seasonality. Not a first-city site.",life_support
+olympus,Olympus Mons,18.65,226.2,high_volcano,"Landmark and comms high ground. Terrible first habitat: thin air, hard EDL.",architecture
+valles,Valles Marineris,-13.8,300.8,canyon,"Shelter and layered access vs access cost and slope.",architecture;vehicles
+pavonis,Pavonis Mons lava tubes,0.3,247.0,lava_tube,"Tharsis volcano flank. Published lava-tube candidates. Radiation shelter hypothesis.",architecture
+chryse,Chryse Planitia,28.4,320.0,outflow_plain,"Viking 1. Outflow-channel mouth, low, historically landed.",vehicles;architecture
+meridiani,Meridiani Planum,-1.95,354.5,hematite_plain,"Opportunity site. Hematite, relatively flat, equatorial solar.",architecture;life_support
+gusev,Gusev crater,-14.57,175.47,crater_floor,"Spirit site. Crater plus volcanic plains. Another ground-truth pin.",architecture

@@ -1,0 +1,9 @@
+---
+description: Mars City Hackathon brief and global skills
+---
+
+Before product work, read [docs/hackathon.md](docs/hackathon.md), [docs/hackathon/official-packs.md](docs/hackathon/official-packs.md), and [docs/skills.md](docs/skills.md). Shared scenario is 100 people, 730 sols, dust storm sols 180-260.
+
+Do not invent a product, track, or ML decision. Those come from the crew, then from `LOCKS.md` once it exists.
+
+When writing the night's goal, use the global `early-decision-locking` skill. When polishing UI, use the interface skills listed in `docs/skills.md` rather than generic design advice. When editing the Mars globe, follow `.cursor/rules/three-shader-language.mdc` and `.cursor/knowledge/tsl.md`.
