@@ -7,14 +7,14 @@ Event repo rules: public repo, last commit before **20:35**, README names the bu
 ## 1. What we shipped
 
 - Crew name / repo: `_`
-- One-sentence product: `_`
+- One-sentence product: `Pick a NASA landing area, then read a site report that sizes radiation cover, quake tier, wind load, and thermal-stability depth for a 100-person first habitat.`
 - **Track (pick one):**
-  - [ ] A Architecture
+  - [x] A Architecture
   - [ ] B Vehicles & Mobility
   - [ ] C Life Support & Resource Systems
-- One ML decision (better than a guess): `_`
+- One ML decision (better than a guess): `Rule-based tonight, not a trained model. Elevation, ice, and cave pits feed physics rules that output dig depth (m), quake tier, wind pressure (Pa), and annual skin depth — the numbers a crew uses to decide how much to bury vs build above ground.`
   What the model or rule outputs, and what a human then builds or does with that output.
-- Non-goals (will not mention on stage): `_`
+- Non-goals (will not mention on stage): `Trained radiation or seismic models, a full cave catalog, geothermal power, simulated lava-tube clusters in the 3D mesh.`
 
 Shared scenario, unless you deliberately left it: **100 people**, **730 sols**, dust storm **sols 180–260**.
 
@@ -28,7 +28,7 @@ See [official-packs.md](./official-packs.md). Discovery notes: [A](./track-a-ema
 
 | Used | Pack | Path | Real or simulated | What we took from it |
 | --- | --- | --- | --- | --- |
-| [ ] | A EMARS weather | `data/raw/official-packs/extracted/track-a-architecture-emars/` | Simulated, EMARS-informed | `_` |
+| [x] | A EMARS weather | `data/raw/official-packs/extracted/track-a-architecture-emars/` | Simulated, EMARS-informed | `Hardcoded wind max / storm-median / clear-median and mean temperature from the Jezero hourly series` |
 | [ ] | B AI4MARS images | `.../track-b-vehicles-ai4mars/` images + labels | 48 real frames, 12 synth | `_` |
 | [ ] | B trip timetable | `.../logistics_duty_cycle_100p_730sol.csv` | Simulated | `_` |
 | [ ] | B2 mobility grid | `.../track-b2-mobility-ai4mars/` | Fully synthetic | `_` |
@@ -40,18 +40,18 @@ See [datasets.md](./datasets.md).
 
 | Used | Dataset | Path | What we took from it |
 | --- | --- | --- | --- |
-| [ ] | MOLA 4 / 16 ppd | `data/raw/mola/` | `_` |
-| [ ] | SWIM ice | `data/raw/swim/` | `_` |
+| [x] | MOLA 4 / 16 ppd | `data/raw/mola/` | `Elevation and local slope; 4 ppd heightmap for the inspect mesh and custom-pin sample` |
+| [x] | SWIM ice | `data/raw/swim/` | `Per-site ice consistency at 0–1 m, 1–5 m, and >5 m` |
 | [ ] | Robbins craters | `data/raw/craters/` | `_` |
 | [ ] | Curiosity REMS | `data/raw/weather/` | `_` |
-| [ ] | Curated sites | `data/raw/sites/candidate-sites.csv` | `_` |
-| [ ] | Other | `_` | `_` |
+| [x] | Curated sites | `data/raw/sites/candidate-sites.csv` | `NASA landing pins shown on the globe` |
+| [x] | Other | `lib/mars-caves.ts` | `THEMIS Arsia Mons skylights (Cushing et al. 2007)` |
 
 ### Honest line for judges
 
 One sentence. Example: "Weather and ECLSS tables are hack-ready simulations; the 48 rover frames are real AI4MARS, resized."
 
-`_`
+Radiation, seismic, wind-load and thermal depths are physics rules with cited constants, not site measurements; wind is Track A simulated Jezero series.
 
 Citations go in the README. Copy from [official-source/CREDITS.txt](./official-source/CREDITS.txt) for any official pack you ticked.
 

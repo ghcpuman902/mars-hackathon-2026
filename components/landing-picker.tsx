@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 
 import { MarsMap2D } from "@/components/mars-map-2d"
+import { SiteReport } from "@/components/site-report"
 import {
   AREA_GROUPS,
   NASA_AREA_BY_ID,
@@ -14,12 +15,18 @@ import { cavesNear } from "@/lib/mars-caves"
 import {
   JEZERO,
   formatLatLon,
+  isCustomSiteId,
+  makeCustomSite,
   shortSiteName,
+  type CustomSite,
   type LandingPick,
   type LandingSite,
 } from "@/lib/mars-landing"
-import type { GlobeSceneMode } from "@/components/mars-globe"
-
+import {
+  loadMola4ppd,
+  sampleMolaBilinear,
+  type MolaGrid,
+} from "@/lib/mola-heightmap"
 const MarsGlobe = dynamic(
   () => import("@/components/mars-globe").then((mod) => mod.MarsGlobe),
   {
@@ -44,21 +51,17 @@ const SiteTerrain = dynamic(
   },
 )
 
-const SCENE_MODES: { id: GlobeSceneMode; label: string }[] = [
-  { id: "globe", label: "3D" },
-  { id: "columbus", label: "2.5D" },
-  { id: "map", label: "2D" },
-]
-
 type Stage = "select" | "inspect"
 
 export const LandingPicker = () => {
   const [sites, setSites] = useState<LandingSite[]>([])
+  const [customSites, setCustomSites] = useState<CustomSite[]>([])
   const [pick, setPick] = useState<LandingPick>(JEZERO)
-  const [sceneMode, setSceneMode] = useState<GlobeSceneMode>("map")
   const [engine, setEngine] = useState<"cesium" | "fallback">("cesium")
   const [menuOpen, setMenuOpen] = useState(true)
   const [stage, setStage] = useState<Stage>("select")
+  const [sampledElevationM, setSampledElevationM] = useState<number | null>(null)
+  const molaRef = useRef<MolaGrid | null>(null)
 
   const nasaSites = useMemo(
     () => sites.filter((site) => NASA_SITE_IDS.includes(site.id)),
@@ -66,11 +69,14 @@ export const LandingPicker = () => {
   )
 
   const selected = nasaSites.find((site) => site.id === pick.siteId)
+  const customSelected = customSites.find((site) => site.id === pick.siteId)
   const area = pick.siteId ? NASA_AREA_BY_ID[pick.siteId] : undefined
+  const isCustom = Boolean(customSelected) || isCustomSiteId(pick.siteId)
   const nearbyCaves = useMemo(
     () => cavesNear(pick.lat_deg, pick.lon_east_deg, 4),
     [pick.lat_deg, pick.lon_east_deg],
   )
+  const elevationM = selected?.elevation_m ?? sampledElevationM
 
   const handleToggleMenu = () => {
     setMenuOpen((open) => !open)
@@ -94,7 +100,16 @@ export const LandingPicker = () => {
 
   const handleFail = () => {
     setEngine("fallback")
-    setSceneMode("map")
+  }
+
+  const handleCustomAdd = (lat_deg: number, lon_east_deg: number) => {
+    const next = makeCustomSite(lat_deg, lon_east_deg)
+    setCustomSites((current) => [...current, next])
+    setPick({
+      lat_deg: next.lat_deg,
+      lon_east_deg: next.lon_east_deg,
+      siteId: next.id,
+    })
   }
 
   useEffect(() => {
@@ -119,6 +134,28 @@ export const LandingPicker = () => {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [stage])
 
+  useEffect(() => {
+    if (stage !== "inspect") {
+      return
+    }
+    let cancelled = false
+    const handleSample = async () => {
+      if (!molaRef.current) {
+        molaRef.current = await loadMola4ppd()
+      }
+      if (cancelled || !molaRef.current) {
+        return
+      }
+      setSampledElevationM(
+        sampleMolaBilinear(molaRef.current, pick.lat_deg, pick.lon_east_deg),
+      )
+    }
+    void handleSample()
+    return () => {
+      cancelled = true
+    }
+  }, [stage, pick.lat_deg, pick.lon_east_deg])
+
   if (stage === "inspect") {
     return (
       <div className="relative min-h-svh bg-[#140c08] text-stone-100">
@@ -132,12 +169,12 @@ export const LandingPicker = () => {
 
         <header className="pointer-events-none absolute inset-x-0 top-0 z-10 p-4 sm:p-6">
           <h1 className="text-xl font-medium tracking-tight sm:text-2xl">
-            {selected?.name ?? "Custom pin"}
+            {selected?.name ?? (isCustom ? "Custom site" : "Custom pin")}
           </h1>
         </header>
 
         <aside className="pointer-events-none absolute bottom-0 left-0 z-10 w-full p-4 sm:max-w-md sm:p-6">
-          <div className="pointer-events-auto rounded-lg bg-black/70 p-4 backdrop-blur-sm">
+          <div className="pointer-events-auto max-h-[60svh] overflow-y-auto rounded-lg bg-black/70 p-4 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-3">
               <p className="font-mono text-sm">
                 {formatLatLon(pick.lat_deg, pick.lon_east_deg)}
@@ -150,34 +187,12 @@ export const LandingPicker = () => {
                 Back to map
               </button>
             </div>
-            {selected ? (
-              <p className="mt-2 text-sm text-stone-300">{selected.why_it_matters}</p>
-            ) : (
-              <p className="mt-2 text-sm text-stone-400">
-                Terrain is MOLA, upsampled, with local roughness added so the
-                ground reads at this scale.
-              </p>
-            )}
-            {nearbyCaves.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-sm">
-                {nearbyCaves.map((cave) => (
-                  <li key={cave.id}>
-                    <span className="text-teal-200">{cave.name}</span>
-                    <span className="text-stone-400">
-                      {` · ${cave.diameter_m} m wide`}
-                      {cave.min_depth_m != null
-                        ? ` · ≥${cave.min_depth_m} m deep`
-                        : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-stone-400">
-                No published THEMIS cave pits in this ellipse. Arsia Mons is the
-                cluster with named skylights.
-              </p>
-            )}
+            <SiteReport
+              site={selected}
+              pick={pick}
+              elevationM={elevationM}
+              caves={nearbyCaves}
+            />
           </div>
         </aside>
       </div>
@@ -189,18 +204,25 @@ export const LandingPicker = () => {
       <div
         className="absolute inset-0"
         role="application"
-        aria-label="Mars map of NASA landing areas. Click an ellipse to select."
+        aria-label="Mars map of NASA landing areas. Click a label to select. Long-press to add a custom site."
       >
         {engine === "cesium" ? (
           <MarsGlobe
             pick={pick}
             sites={nasaSites}
-            sceneMode={sceneMode}
+            customSites={customSites}
             onPick={setPick}
+            onCustomAdd={handleCustomAdd}
             onFail={handleFail}
           />
         ) : (
-          <MarsMap2D pick={pick} sites={nasaSites} onPick={setPick} />
+          <MarsMap2D
+            pick={pick}
+            sites={nasaSites}
+            customSites={customSites}
+            onPick={setPick}
+            onCustomAdd={handleCustomAdd}
+          />
         )}
       </div>
 
@@ -210,8 +232,8 @@ export const LandingPicker = () => {
         </h1>
         {menuOpen ? (
           <p className="mt-1 max-w-lg text-sm text-stone-400">
-            Cream ellipses are flown or shortlisted sites. Teal dots are THEMIS
-            cave pits on Arsia Mons. Click an area, then inspect the ground.
+            Drag to pan. Scroll or pinch to zoom. Shift-scroll or right-drag to
+            tilt. Long-press empty ground for a custom site.
           </p>
         ) : null}
       </header>
@@ -223,31 +245,6 @@ export const LandingPicker = () => {
               {formatLatLon(pick.lat_deg, pick.lon_east_deg)}
             </p>
             <div className="flex items-center gap-2">
-              <div className="flex gap-1" role="group" aria-label="Map projection">
-                {SCENE_MODES.map((mode) => {
-                  const active = sceneMode === mode.id
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      aria-pressed={active}
-                      className={
-                        active
-                          ? "rounded-full bg-stone-100 px-2.5 py-0.5 text-xs text-stone-900"
-                          : "rounded-full border border-white/20 px-2.5 py-0.5 text-xs text-stone-100"
-                      }
-                      onClick={() => {
-                        if (engine === "fallback" && mode.id !== "map") {
-                          setEngine("cesium")
-                        }
-                        setSceneMode(mode.id)
-                      }}
-                    >
-                      {mode.label}
-                    </button>
-                  )
-                })}
-              </div>
               <button
                 type="button"
                 aria-expanded={menuOpen}
@@ -275,9 +272,16 @@ export const LandingPicker = () => {
                   <p className="text-stone-400">{ROLE_LABEL[area.role]}</p>
                   <p className="text-stone-400">{area.source}</p>
                 </div>
+              ) : isCustom ? (
+                <div className="mt-3 space-y-1 text-sm">
+                  <p className="font-medium">Custom site</p>
+                  <p className="text-stone-400">
+                    Dropped with a long-press. Not a NASA ellipse.
+                  </p>
+                </div>
               ) : (
                 <p className="mt-3 text-sm text-stone-400">
-                  Click a cream ellipse. Those are the NASA-recommended areas.
+                  Click a map label. Long-press empty ground to add your own.
                 </p>
               )}
 
@@ -286,7 +290,7 @@ export const LandingPicker = () => {
                 className="mt-3 rounded-full bg-stone-100 px-3 py-1.5 text-sm text-stone-900"
                 onClick={handleInspect}
               >
-                Inspect terrain
+                Inspect site
               </button>
 
               <div className="mt-4 space-y-3">

@@ -19,6 +19,24 @@ export type LandingPick = {
   siteId?: string
 }
 
+export type CustomSite = {
+  id: string
+  lat_deg: number
+  lon_east_deg: number
+}
+
+export const isCustomSiteId = (siteId?: string) => {
+  return Boolean(siteId?.startsWith("custom-"))
+}
+
+export const makeCustomSite = (lat_deg: number, lon_east_deg: number): CustomSite => {
+  return {
+    id: `custom-${Date.now()}`,
+    lat_deg,
+    lon_east_deg,
+  }
+}
+
 export const JEZERO: LandingPick = {
   lat_deg: 18.38,
   lon_east_deg: 77.58,
