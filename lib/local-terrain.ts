@@ -206,8 +206,8 @@ export const buildLocalTerrain = (
     const i = row * (cells + 1) + col
     const surfaceY = (heights[i] - mid) * exaggerate
     const depthM = Math.max(
-      (cave.min_depth_m ?? 80) * exaggerate * 2.2,
-      spanM * 0.03,
+      (cave.min_depth_m ?? 80) * exaggerate * 2.4,
+      spanM * 0.028,
     )
     return {
       id: cave.id,
@@ -215,9 +215,9 @@ export const buildLocalTerrain = (
       x,
       y: surfaceY,
       z,
-      radiusM: Math.max(cave.diameter_m * 2.2, spanM * 0.008),
+      radiusM: Math.max(cave.diameter_m * 2.4, spanM * 0.01),
       depthM,
-      roomRM: Math.max(cave.diameter_m * 6, spanM * 0.014),
+      roomRM: Math.max(cave.diameter_m * 7, spanM * 0.02),
     }
   })
 

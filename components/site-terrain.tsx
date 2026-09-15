@@ -76,10 +76,10 @@ export const SiteTerrain = ({
         8,
         terrain.spanM * 40,
       )
-      const pull = terrain.caves.length > 0 ? 0.12 : 0.22
+      const pull = terrain.caves.length > 0 ? 0.15 : 0.22
       camera.position.set(
-        focus.x - terrain.spanM * 0.03,
-        focus.y + terrain.spanM * (terrain.caves.length > 0 ? 0.2 : 0.14),
+        focus.x - terrain.spanM * 0.08,
+        focus.y + terrain.spanM * (terrain.caves.length > 0 ? 0.11 : 0.14),
         focus.z + terrain.spanM * pull,
       )
 
