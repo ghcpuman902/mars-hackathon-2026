@@ -42,6 +42,21 @@ export const lonEastTo180 = (lonEast: number) => {
   return east > 180 ? east - 360 : east
 }
 
+export const vikingTileUrl = (lat: number, lonEast: number, level = 6) => {
+  const lon180 = lonEastTo180(lonEast)
+  const tilesX = 2 * 2 ** level
+  const tilesY = 2 ** level
+  const x = Math.min(
+    tilesX - 1,
+    Math.max(0, Math.floor(((lon180 + 180) / 360) * tilesX)),
+  )
+  const y = Math.min(
+    tilesY - 1,
+    Math.max(0, Math.floor(((90 - lat) / 180) * tilesY)),
+  )
+  return `https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/${level}/${y}/${x}.jpg`
+}
+
 export const lon180ToEast = (lon180: number) => {
   return ((lon180 % 360) + 360) % 360
 }
@@ -49,6 +64,14 @@ export const lon180ToEast = (lon180: number) => {
 export const latLonToUv = (lat: number, lonEast: number) => {
   const lon = ((lonEast % 360) + 360) % 360
   return { u: lon / 360, v: (lat + 90) / 180 }
+}
+
+export const shortSiteName = (name: string) => {
+  return name
+    .replace(" crater", "")
+    .replace(" Planitia", "")
+    .replace(" lava tubes", "")
+    .replace(" caves", "")
 }
 
 export const nearestSite = (

@@ -150,5 +150,6 @@
 .cesium-mars .cesium-viewer-bottom {
   left: auto;
   right: 0.5rem;
-  bottom: 0.25rem;
+  bottom: auto;
+  top: 5.5rem;
 }

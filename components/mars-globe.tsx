@@ -21,12 +21,15 @@ import {
   ScreenSpaceEventType,
   SingleTileImageryProvider,
   SkyAtmosphere,
+  UrlTemplateImageryProvider,
   VerticalOrigin,
   Viewer,
 } from "cesium"
 import "cesium/Build/Cesium/Widgets/widgets.css"
 
-import { loadMola4ppd, sampleMolaMetres } from "@/lib/mola-heightmap"
+import { loadMola4ppd, sampleMolaBilinear } from "@/lib/mola-heightmap"
+import { MARS_CAVES } from "@/lib/mars-caves"
+import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
 import {
   lon180ToEast,
   lonEastTo180,
@@ -46,8 +49,10 @@ export type MarsGlobeProps = {
 }
 
 const TILE = 65
-const EXAGGERATION = 12
+const EXAGGERATION = 10
 const SITE_HEIGHT_M = 400
+const VIKING_TILES =
+  "https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg"
 
 const sceneModeToCesium = (mode: GlobeSceneMode) => {
   if (mode === "map") {
@@ -59,24 +64,18 @@ const sceneModeToCesium = (mode: GlobeSceneMode) => {
   return SceneMode.SCENE3D
 }
 
-const wrapHillshadeToLon180 = async () => {
-  const image = new Image()
-  image.src = "/data/mola_4ppd_hillshade.png"
-  await image.decode()
-  const canvas = document.createElement("canvas")
-  canvas.width = image.naturalWidth
-  canvas.height = image.naturalHeight
-  const context = canvas.getContext("2d")
-  if (!context) {
-    throw new Error("Could not wrap hillshade")
+const siteRangeM = (siteId?: string) => {
+  if (!siteId) {
+    return 8_000_000
   }
-  const half = canvas.width / 2
-  context.drawImage(image, half, 0, half, canvas.height, 0, 0, half, canvas.height)
-  context.drawImage(image, 0, 0, half, canvas.height, half, 0, half, canvas.height)
-  return canvas.toDataURL("image/png")
+  const area = NASA_AREA_BY_ID[siteId]
+  if (!area) {
+    return 280_000
+  }
+  return Math.max(area.ellipseKm[0] * 7000, 160_000)
 }
 
-const syncPins = (
+const syncEntities = (
   viewer: Viewer,
   sites: LandingSite[],
   pick: LandingPick,
@@ -85,6 +84,24 @@ const syncPins = (
   for (const site of sites) {
     const selected = pick.siteId === site.id
     const lon = lonEastTo180(site.lon_east_deg)
+    const area = NASA_AREA_BY_ID[site.id]
+    if (area) {
+      viewer.entities.add({
+        id: `area-${site.id}`,
+        name: site.name,
+        position: Cartesian3.fromDegrees(lon, site.lat_deg),
+        ellipse: {
+          semiMajorAxis: area.ellipseKm[0] * 500,
+          semiMinorAxis: area.ellipseKm[1] * 500,
+          rotation: CesiumMath.toRadians(area.headingDeg),
+          material: Color.fromCssColorString("#f4d7a8").withAlpha(
+            selected ? 0.34 : 0.16,
+          ),
+          height: 0,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
+        },
+      })
+    }
     viewer.entities.add({
       id: site.id,
       name: site.name,
@@ -96,8 +113,7 @@ const syncPins = (
           : Color.fromCssColorString("#e8b48a"),
         outlineColor: Color.BLACK,
         outlineWidth: 1,
-        heightReference: HeightReference.RELATIVE_TO_GROUND,
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
       },
       label: {
         text: site.name,
@@ -110,7 +126,26 @@ const syncPins = (
         verticalOrigin: VerticalOrigin.BOTTOM,
         horizontalOrigin: HorizontalOrigin.CENTER,
         show: selected,
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+      },
+    })
+  }
+
+  for (const cave of MARS_CAVES) {
+    viewer.entities.add({
+      id: `cave-${cave.id}`,
+      name: cave.name,
+      position: Cartesian3.fromDegrees(
+        lonEastTo180(cave.lon_east_deg),
+        cave.lat_deg,
+        SITE_HEIGHT_M,
+      ),
+      point: {
+        pixelSize: 6,
+        color: Color.fromCssColorString("#7de0c6"),
+        outlineColor: Color.BLACK,
+        outlineWidth: 1,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
       },
     })
   }
@@ -128,6 +163,23 @@ const applySceneMode = (viewer: Viewer, mode: GlobeSceneMode, duration: number) 
   viewer.scene.morphTo3D(duration)
 }
 
+const entitySiteId = (raw: unknown, sites: LandingSite[]) => {
+  if (!raw || typeof raw !== "object" || !("id" in raw)) {
+    return undefined
+  }
+  const id = String((raw as { id: string }).id)
+  if (id.startsWith("area-")) {
+    return id.slice(5)
+  }
+  if (id.startsWith("cave-")) {
+    return "arsia"
+  }
+  if (sites.some((site) => site.id === id)) {
+    return id
+  }
+  return undefined
+}
+
 export const MarsGlobe = ({
   pick,
   sites,
@@ -143,10 +195,12 @@ export const MarsGlobe = ({
   const viewerRef = useRef<Viewer | null>(null)
   const lastFlownRef = useRef<string | undefined>(undefined)
 
-  pickRef.current = pick
-  sitesRef.current = sites
-  onPickRef.current = onPick
-  onFailRef.current = onFail
+  useEffect(() => {
+    pickRef.current = pick
+    sitesRef.current = sites
+    onPickRef.current = onPick
+    onFailRef.current = onFail
+  }, [pick, sites, onPick, onFail])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -164,7 +218,7 @@ export const MarsGlobe = ({
     if (!viewer || viewer.isDestroyed()) {
       return
     }
-    syncPins(viewer, sites, pick)
+    syncEntities(viewer, sites, pick)
     if (pick.siteId && pick.siteId !== lastFlownRef.current) {
       lastFlownRef.current = pick.siteId
       const reduceMotion = window.matchMedia(
@@ -174,7 +228,7 @@ export const MarsGlobe = ({
         destination: Cartesian3.fromDegrees(
           lonEastTo180(pick.lon_east_deg),
           pick.lat_deg,
-          520000,
+          siteRangeM(pick.siteId),
         ),
         duration: reduceMotion ? 0 : 1.2,
       })
@@ -195,10 +249,7 @@ export const MarsGlobe = ({
         window.CESIUM_BASE_URL = "/cesium/"
         Ellipsoid.default = Ellipsoid.MARS
 
-        const [grid, hillshadeUrl] = await Promise.all([
-          loadMola4ppd(),
-          wrapHillshadeToLon180(),
-        ])
+        const grid = await loadMola4ppd()
         if (disposed) {
           return
         }
@@ -228,7 +279,7 @@ export const MarsGlobe = ({
                   rectangle.west +
                     (rectangle.east - rectangle.west) * (col / (TILE - 1)),
                 )
-                heights[row * TILE + col] = sampleMolaMetres(
+                heights[row * TILE + col] = sampleMolaBilinear(
                   grid,
                   lat,
                   lon180ToEast(lon180),
@@ -239,14 +290,27 @@ export const MarsGlobe = ({
           },
         })
 
-        const imagery = await SingleTileImageryProvider.fromUrl(hillshadeUrl, {
-          rectangle: Rectangle.fromDegrees(-180, -90, 180, 90),
-          ellipsoid: Ellipsoid.MARS,
-          credit: "MOLA hillshade from the same MEGDR",
-        })
+        const fallback = await SingleTileImageryProvider.fromUrl(
+          "/data/mars_viking_l2.jpg",
+          {
+            rectangle: Rectangle.fromDegrees(-180, -90, 180, 90),
+            ellipsoid: Ellipsoid.MARS,
+            credit: "Viking MDIM 2.1 browse · NASA / USGS",
+          },
+        )
         if (disposed) {
           return
         }
+
+        const trek = new UrlTemplateImageryProvider({
+          url: VIKING_TILES,
+          tilingScheme,
+          minimumLevel: 0,
+          maximumLevel: 7,
+          tileWidth: 256,
+          tileHeight: 256,
+          credit: "Viking MDIM 2.1 232 m · NASA Trek / USGS",
+        })
 
         viewer = new Viewer(container, {
           animation: false,
@@ -265,10 +329,10 @@ export const MarsGlobe = ({
           ellipsoid: Ellipsoid.MARS,
           terrainProvider,
           mapProjection: new GeographicProjection(Ellipsoid.MARS),
-          baseLayer: new ImageryLayer(imagery),
+          baseLayer: new ImageryLayer(fallback),
           skyAtmosphere: new SkyAtmosphere(Ellipsoid.MARS),
           sceneMode: sceneModeToCesium(sceneMode),
-          msaaSamples: 1,
+          msaaSamples: 4,
           useBrowserRecommendedResolution: true,
           requestRenderMode: false,
         })
@@ -277,17 +341,31 @@ export const MarsGlobe = ({
           return
         }
 
-        viewer.scene.globe.baseColor = Color.fromCssColorString("#c45a28")
+        viewer.imageryLayers.addImageryProvider(trek)
+        viewer.scene.globe.baseColor = Color.fromCssColorString("#8a3a1c")
         viewer.scene.globe.enableLighting = false
+        viewer.scene.globe.depthTestAgainstTerrain = true
         viewer.scene.verticalExaggeration = EXAGGERATION
         viewer.scene.verticalExaggerationRelativeHeight = 0
-        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 250
-        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 2.4e7
         viewer.scene.backgroundColor = Color.fromCssColorString("#140c08")
         viewer.resolutionScale = 1
 
+        const cameraControl = viewer.scene.screenSpaceCameraController
+        cameraControl.enableZoom = true
+        cameraControl.enableTilt = true
+        cameraControl.enableRotate = true
+        cameraControl.enableTranslate = true
+        cameraControl.enableCollisionDetection = true
+        cameraControl.zoomFactor = 12
+        cameraControl.inertiaZoom = 0.82
+        cameraControl.inertiaSpin = 0.88
+        cameraControl.minimumZoomDistance = 80
+        cameraControl.maximumZoomDistance = 4.5e7
+        cameraControl.minimumCollisionTerrainHeight = 400
+        cameraControl.minimumPickingTerrainHeight = 200
+
         viewerRef.current = viewer
-        syncPins(viewer, sitesRef.current, pickRef.current)
+        syncEntities(viewer, sitesRef.current, pickRef.current)
 
         const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
         handler.setInputAction((click: { position: Cartesian2 }) => {
@@ -296,17 +374,12 @@ export const MarsGlobe = ({
             return
           }
           const picked = current.scene.pick(click.position)
-          const entityId =
-            picked &&
-            typeof picked === "object" &&
-            "id" in picked &&
-            picked.id &&
-            typeof picked.id === "object" &&
-            "id" in picked.id
-              ? String((picked.id as { id: string }).id)
+          const pickedId =
+            picked && typeof picked === "object" && "id" in picked
+              ? entitySiteId(picked.id, sitesRef.current)
               : undefined
-          if (entityId) {
-            const site = sitesRef.current.find((item) => item.id === entityId)
+          if (pickedId) {
+            const site = sitesRef.current.find((item) => item.id === pickedId)
             if (site) {
               onPickRef.current({
                 lat_deg: site.lat_deg,
@@ -327,7 +400,7 @@ export const MarsGlobe = ({
           const carto = Cartographic.fromCartesian(cartesian)
           const lat = CesiumMath.toDegrees(carto.latitude)
           const lonEast = lon180ToEast(CesiumMath.toDegrees(carto.longitude))
-          const site = nearestSite(sitesRef.current, lat, lonEast, 2.2)
+          const site = nearestSite(sitesRef.current, lat, lonEast, 3.2)
           onPickRef.current(
             site
               ? {
@@ -339,15 +412,16 @@ export const MarsGlobe = ({
           )
         }, ScreenSpaceEventType.LEFT_CLICK)
 
+        const start = pickRef.current
         viewer.camera.flyTo({
           destination: Cartesian3.fromDegrees(
-            lonEastTo180(pickRef.current.lon_east_deg),
-            pickRef.current.lat_deg,
-            8_000_000,
+            lonEastTo180(start.lon_east_deg),
+            start.lat_deg,
+            start.siteId ? siteRangeM(start.siteId) : 8_000_000,
           ),
           duration: 0,
         })
-        lastFlownRef.current = pickRef.current.siteId
+        lastFlownRef.current = start.siteId
       } catch {
         onFailRef.current?.()
       }

@@ -2,6 +2,8 @@
 
 import type { PointerEvent } from "react"
 
+import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
+import { MARS_CAVES } from "@/lib/mars-caves"
 import {
   latLonToUv,
   nearestSite,
@@ -42,27 +44,35 @@ export const MarsMap2D = ({ pick, sites, onPick }: MarsMap2DProps) => {
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
       <img
-        src="/data/mola_4ppd_hillshade.png"
-        alt="Mars MOLA hillshade. Click to set a landing site."
+        src="/data/mars_viking_l2.jpg"
+        alt="Mars Viking color mosaic. Click to set a landing site."
         className="h-full w-full cursor-crosshair object-fill"
-        style={{ filter: "sepia(1) saturate(2.4) hue-rotate(-25deg) brightness(0.85)" }}
         onPointerUp={handlePointerUp}
         draggable={false}
       />
       {sites.map((site) => {
         const uv = latLonToUv(site.lat_deg, site.lon_east_deg)
         const selected = pick.siteId === site.id
+        const area = NASA_AREA_BY_ID[site.id]
+        const widthPct = area ? (area.ellipseKm[0] / (360 * 59)) * 100 : 1.2
+        const heightPct = area ? (area.ellipseKm[1] / (180 * 59)) * 100 : 1.2
         return (
           <button
             key={site.id}
             type="button"
             aria-label={site.name}
+            aria-pressed={selected}
             className={
               selected
-                ? "absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-                : "absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-300"
+                ? "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-white/25"
+                : "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-amber-100/70 bg-amber-100/15"
             }
-            style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}
+            style={{
+              left: `${uv.u * 100}%`,
+              top: `${(1 - uv.v) * 100}%`,
+              width: `${Math.max(widthPct, 1.1)}%`,
+              height: `${Math.max(heightPct, 1.8)}%`,
+            }}
             onClick={() =>
               onPick({
                 lat_deg: site.lat_deg,
@@ -70,6 +80,17 @@ export const MarsMap2D = ({ pick, sites, onPick }: MarsMap2DProps) => {
                 siteId: site.id,
               })
             }
+          />
+        )
+      })}
+      {MARS_CAVES.map((cave) => {
+        const uv = latLonToUv(cave.lat_deg, cave.lon_east_deg)
+        return (
+          <span
+            key={cave.id}
+            aria-hidden
+            className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-300"
+            style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}
           />
         )
       })}
