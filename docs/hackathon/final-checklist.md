@@ -6,7 +6,7 @@ Event repo rules: public repo, last commit before **20:35**, README names the bu
 
 ## 1. What we shipped
 
-- Crew name / repo: `_`
+- Crew name / repo: `Mangle Kuo / https://github.com/ghcpuman902/mars-hackathon-2026`
 - One-sentence product: `Pick a NASA landing area, then read a site report that sizes radiation cover, quake tier, wind load, and thermal-stability depth for a 100-person first habitat.`
 - **Track (pick one):**
   - [x] A Architecture
@@ -57,15 +57,15 @@ Citations go in the README. Copy from [official-source/CREDITS.txt](./official-s
 
 ## 3. README and repo (must be in the pushed tree)
 
-- [ ] Track named in the README heading or first paragraph
-- [ ] 100-word summary of what we built
-- [ ] How ML was used (the one decision, the features, the output)
-- [ ] **Data used** section: every ticked row above, plus real vs simulated
-- [ ] How to run or view the demo (`pnpm`, `.venv`, which URL or script)
-- [ ] If this is a pre-existing startup idea, that is disclosed
-- [ ] No secrets, no `.env.local`
-- [ ] Public repo under the event org if they gave one, else the repo they asked for
-- [ ] Last commit timestamp before 20:35
+- [x] Track named in the README heading or first paragraph
+- [x] 100-word summary of what we built
+- [x] How ML was used (the one decision, the features, the output)
+- [x] **Data used** section: every ticked row above, plus real vs simulated
+- [x] How to run or view the demo (`pnpm`, `.venv`, which URL or script)
+- [x] If this is a pre-existing startup idea, that is disclosed
+- [x] No secrets, no `.env.local`
+- [x] Public repo under the event org if they gave one, else the repo they asked for
+- [x] Last commit timestamp before 20:35
 
 ## 4. Demo path (rehearse once)
 
@@ -77,22 +77,22 @@ Minute 2–3: the ML decision and why a first city would care.
 
 Q&A: data honesty, feasibility, what you would do with another day.
 
-- [ ] Demo URL or command: `_`
-- [ ] Backup screenshot or recording if the network dies
-- [ ] Who speaks, who drives
+- [x] Demo URL or command: `pnpm dev` then http://localhost:3000. Rehearsal is already on http://localhost:3005. Repo: https://github.com/ghcpuman902/mars-hackathon-2026
+- [x] Backup screenshot or recording if the network dies: `docs/hackathon/demo/01-globe.png`, `docs/hackathon/demo/02-inspect.png`
+- [x] Who speaks, who drives: solo, Mangle Kuo drives and talks
 
 ## 5. Do not overclaim
 
-- [ ] We did not call Track A or C "real EMARS / Mars500 telemetry"
-- [ ] We did not report synth-only image accuracy (B masks are identical)
-- [ ] We did not treat B2 as HiRISE/MOLA
-- [ ] Storm thermal swing: we did not "prove" dust-storm physics from Pack A
-- [ ] CO2 proxy in Pack C is mild (~1,200 ppm). We did not call it a cabin failure unless we added that ourselves
+- [x] We did not call Track A or C "real EMARS / Mars500 telemetry"
+- [x] We did not report synth-only image accuracy (B masks are identical)
+- [x] We did not treat B2 as HiRISE/MOLA
+- [x] Storm thermal swing: we did not "prove" dust-storm physics from Pack A
+- [x] CO2 proxy in Pack C is mild (~1,200 ppm). We did not call it a cabin failure unless we added that ourselves
 
 ## 6. Freeze (20:25–20:35)
 
-- [ ] `LOCKS.md` or this file has track + data filled
-- [ ] README updated
-- [ ] Demo path works on a cold start
+- [x] `LOCKS.md` or this file has track + data filled
+- [x] README updated
+- [x] Demo path works on a cold start
 - [ ] Commits staged and pushed
 - [ ] Laptop on the demo URL, not the editor

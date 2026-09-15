@@ -3,11 +3,14 @@
 import { useRef } from "react"
 import type { PointerEvent } from "react"
 
+import { SiteMark } from "@/components/site-mark"
 import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
 import { MARS_CAVES } from "@/lib/mars-caves"
 import {
+  customSiteHref,
   latLonToUv,
   shortSiteName,
+  siteHref,
   uvToLatLon,
   type CustomSite,
   type LandingPick,
@@ -103,42 +106,23 @@ export const MarsMap2D = ({
       />
       {sites.map((site) => {
         const uv = latLonToUv(site.lat_deg, site.lon_east_deg)
-        const selected = pick.siteId === site.id
         const area = NASA_AREA_BY_ID[site.id]
         const widthPct = area ? (area.ellipseKm[0] / (360 * 59)) * 100 : 1.2
         const heightPct = area ? (area.ellipseKm[1] / (180 * 59)) * 100 : 1.2
         return (
-          <button
+          <div
             key={site.id}
-            type="button"
-            aria-label={site.name}
-            aria-pressed={selected}
             className="absolute -translate-x-1/2 -translate-y-[calc(100%+0.35rem)]"
             style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}
-            onClick={() =>
-              onPick({
-                lat_deg: site.lat_deg,
-                lon_east_deg: site.lon_east_deg,
-                siteId: site.id,
-              })
-            }
           >
-            <span
-              className={
-                selected
-                  ? "rounded bg-black/80 px-1.5 py-0.5 text-[10px] text-stone-100"
-                  : "rounded bg-black/65 px-1.5 py-0.5 text-[10px] text-stone-200"
-              }
-            >
-              {shortSiteName(site.name)}
-            </span>
-            <span
-              aria-hidden
-              className={
-                selected
-                  ? "absolute left-1/2 top-full mt-1 size-2 -translate-x-1/2 rounded-full bg-white"
-                  : "absolute left-1/2 top-full mt-1 size-1.5 -translate-x-1/2 rounded-full bg-orange-300"
-              }
+            <SiteMark
+              href={siteHref(site.id)}
+              name={shortSiteName(site.name)}
+              lat_deg={site.lat_deg}
+              lon_east_deg={site.lon_east_deg}
+              fact={area?.source ?? site.why_it_matters}
+              role={area?.role ?? "shortlist"}
+              selected={pick.siteId === site.id}
             />
             <span
               aria-hidden
@@ -149,32 +133,24 @@ export const MarsMap2D = ({
                 marginTop: "0.35rem",
               }}
             />
-          </button>
+          </div>
         )
       })}
       {customSites.map((site) => {
         const uv = latLonToUv(site.lat_deg, site.lon_east_deg)
-        const selected = pick.siteId === site.id
         return (
-          <button
+          <SiteMark
             key={site.id}
-            type="button"
-            aria-label="Custom site"
-            aria-pressed={selected}
+            href={customSiteHref(site.lat_deg, site.lon_east_deg)}
+            name="Custom"
+            lat_deg={site.lat_deg}
+            lon_east_deg={site.lon_east_deg}
+            fact="Dropped with a long-press. Not a NASA ellipse."
+            role="custom"
+            selected={pick.siteId === site.id}
             className="absolute -translate-x-1/2 -translate-y-[calc(100%+0.35rem)]"
             style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}
-            onClick={() =>
-              onPick({
-                lat_deg: site.lat_deg,
-                lon_east_deg: site.lon_east_deg,
-                siteId: site.id,
-              })
-            }
-          >
-            <span className="rounded bg-black/80 px-1.5 py-0.5 text-[10px] text-amber-100">
-              Custom
-            </span>
-          </button>
+          />
         )
       })}
       {MARS_CAVES.map((cave) => {

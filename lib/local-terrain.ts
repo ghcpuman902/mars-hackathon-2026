@@ -2,19 +2,19 @@ import { sampleMolaBilinear, type MolaGrid } from "@/lib/mola-heightmap"
 import type { MarsCave } from "@/lib/mars-caves"
 
 export const TERRAIN_CELLS = 192
-export const TERRAIN_SPAN_DEG = 1.6
+export const TERRAIN_SPAN_DEG = 5.2
 
 export const spanForCaves = (caves: MarsCave[], lat0: number, lonEast0: number) => {
   if (caves.length === 0) {
     return TERRAIN_SPAN_DEG
   }
-  let span = 2.4
+  let span = TERRAIN_SPAN_DEG
   for (const cave of caves) {
     const dlat = Math.abs(cave.lat_deg - lat0)
     const dlon = Math.abs(((cave.lon_east_deg - lonEast0 + 540) % 360) - 180)
-    span = Math.max(span, (dlat + 0.45) * 2, (dlon + 0.45) * 2)
+    span = Math.max(span, (dlat + 0.8) * 2, (dlon + 0.8) * 2)
   }
-  return Math.min(span, 5.2)
+  return Math.min(span, 8)
 }
 
 export type CaveMarker = {

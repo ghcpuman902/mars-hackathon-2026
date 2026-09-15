@@ -149,3 +149,11 @@ export const AREA_GROUPS: { label: string; roles: NasaAreaRole[] }[] = [
   { label: "Cave shelter", roles: ["cave_shelter"] },
   { label: "Also shortlisted", roles: ["shortlist"] },
 ]
+
+export const ROLE_DOT: Record<NasaAreaRole | "custom", string> = {
+  human_ez: "bg-sky-400",
+  landed: "bg-stone-100",
+  cave_shelter: "bg-teal-300",
+  shortlist: "bg-amber-300",
+  custom: "bg-orange-300",
+}

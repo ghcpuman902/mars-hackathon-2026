@@ -34,6 +34,7 @@ export const SiteTerrain = ({
     let geometry: THREE.BufferGeometry | null = null
     let material: THREE.MeshStandardMaterial | null = null
     let mesh: THREE.Mesh | null = null
+    let underlay: THREE.Mesh | null = null
     let caveGroup: THREE.Group | null = null
     let albedo: THREE.Texture | null = null
 
@@ -54,23 +55,22 @@ export const SiteTerrain = ({
       renderer = nextRenderer
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75))
       renderer.setSize(container.clientWidth, container.clientHeight)
-      renderer.setClearColor(0x140c08, 1)
+      renderer.setClearColor(0x2a160e, 1)
       container.appendChild(renderer.domElement)
       renderer.domElement.setAttribute("aria-hidden", "true")
 
       const scene = new THREE.Scene()
-      scene.fog = new THREE.Fog(0x2a160e, terrain.spanM * 0.55, terrain.spanM * 1.35)
 
       const camera = new THREE.PerspectiveCamera(
-        48,
+        55,
         container.clientWidth / container.clientHeight,
-        40,
-        terrain.spanM * 6,
+        8,
+        terrain.spanM * 40,
       )
       camera.position.set(
-        -terrain.spanM * 0.12,
-        terrain.spanM * 0.3,
-        -terrain.spanM * 0.42,
+        -terrain.spanM * 0.04,
+        terrain.spanM * 0.14,
+        -terrain.spanM * 0.28,
       )
 
       geometry = new THREE.PlaneGeometry(
@@ -88,7 +88,7 @@ export const SiteTerrain = ({
 
       try {
         albedo = await new THREE.TextureLoader().loadAsync(
-          vikingTileUrl(lat_deg, lon_east_deg, 6),
+          vikingTileUrl(lat_deg, lon_east_deg, 4),
         )
       } catch {
         albedo = null
@@ -111,6 +111,18 @@ export const SiteTerrain = ({
       })
       mesh = new THREE.Mesh(geometry, material)
       scene.add(mesh)
+
+      underlay = new THREE.Mesh(
+        new THREE.CircleGeometry(terrain.spanM * 3, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0x4a2414,
+          roughness: 1,
+          metalness: 0,
+        }),
+      )
+      underlay.rotation.x = -Math.PI / 2
+      underlay.position.y = -terrain.spanM * 0.01
+      scene.add(underlay)
 
       caveGroup = new THREE.Group()
       for (const cave of terrain.caves) {
@@ -153,8 +165,8 @@ export const SiteTerrain = ({
       controls.enableDamping = !reduceMotion
       controls.dampingFactor = 0.08
       controls.maxPolarAngle = Math.PI / 2.08
-      controls.minDistance = terrain.spanM * 0.08
-      controls.maxDistance = terrain.spanM * 1.6
+      controls.minDistance = terrain.spanM * 0.06
+      controls.maxDistance = terrain.spanM * 2.4
       controls.update()
 
       const handleResize = () => {
@@ -202,6 +214,15 @@ export const SiteTerrain = ({
       geometry?.dispose()
       material?.dispose()
       albedo?.dispose()
+      if (underlay) {
+        underlay.geometry.dispose()
+        const underlayMaterial = underlay.material
+        if (Array.isArray(underlayMaterial)) {
+          underlayMaterial.forEach((item) => item.dispose())
+        } else {
+          underlayMaterial.dispose()
+        }
+      }
       caveGroup?.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()

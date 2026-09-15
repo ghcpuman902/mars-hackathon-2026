@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   CameraEventType,
   Cartesian2,
@@ -12,32 +12,32 @@ import {
   GeographicProjection,
   GeographicTilingScheme,
   HeightReference,
-  HorizontalOrigin,
   ImageryLayer,
   KeyboardEventModifier,
-  LabelStyle,
   Math as CesiumMath,
-  NearFarScalar,
   Rectangle,
   SceneMode,
+  SceneTransforms,
   ScreenSpaceCameraController,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
   SkyAtmosphere,
   UrlTemplateImageryProvider,
-  VerticalOrigin,
   Viewer,
 } from "cesium"
 import "cesium/Build/Cesium/Widgets/widgets.css"
 
+import { SiteMark } from "@/components/site-mark"
 import { loadMola4ppd, sampleMolaBilinear } from "@/lib/mola-heightmap"
 import { MARS_CAVES } from "@/lib/mars-caves"
-import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
+import { NASA_AREA_BY_ID, type NasaAreaRole } from "@/lib/nasa-areas"
 import {
+  customSiteHref,
   lon180ToEast,
   lonEastTo180,
   shortSiteName,
+  siteHref,
   type CustomSite,
   type LandingPick,
   type LandingSite,
@@ -55,8 +55,21 @@ export type MarsGlobeProps = {
 const TILE = 65
 const EXAGGERATION = 10
 const SITE_HEIGHT_M = 400
-const LONG_PRESS_MS = 550
+const LONG_PRESS_MS = 700
+const HIT_PX = 44
 const WORLD_RECTANGLE = Rectangle.fromDegrees(-180, -72, 180, 72)
+
+type ScreenMark = {
+  id: string
+  name: string
+  x: number
+  y: number
+  href: string
+  fact: string
+  lat_deg: number
+  lon_east_deg: number
+  role: NasaAreaRole | "custom"
+}
 const VIKING_TILES =
   "https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg"
 
@@ -140,29 +153,12 @@ const addTooltip = (
     name,
     position: Cartesian3.fromDegrees(lonEastTo180(lonEast), lat, SITE_HEIGHT_M),
     point: {
-      pixelSize: selected ? 11 : kind === "cave" ? 5 : 7,
+      pixelSize: selected ? 14 : kind === "cave" ? 6 : 10,
       color: Color.fromCssColorString(fill),
       outlineColor: Color.BLACK,
       outlineWidth: 1,
       heightReference: HeightReference.CLAMP_TO_GROUND,
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    },
-    label: {
-      text: name,
-      font: "11px sans-serif",
-      fillColor: Color.fromCssColorString("#fff6ea"),
-      showBackground: true,
-      backgroundColor: Color.fromCssColorString("#120c08").withAlpha(
-        selected ? 0.88 : 0.72,
-      ),
-      backgroundPadding: new Cartesian2(8, 5),
-      style: LabelStyle.FILL,
-      pixelOffset: new Cartesian2(0, -16),
-      verticalOrigin: VerticalOrigin.BOTTOM,
-      horizontalOrigin: HorizontalOrigin.CENTER,
-      heightReference: HeightReference.CLAMP_TO_GROUND,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-      scaleByDistance: new NearFarScalar(4.0e5, 1, 2.4e7, 0.72),
     },
   })
 }
@@ -263,6 +259,49 @@ const entitySiteId = (
   return undefined
 }
 
+const siteAtScreen = (
+  viewer: Viewer,
+  position: Cartesian2,
+  sites: LandingSite[],
+  customSites: CustomSite[],
+) => {
+  const picked = viewer.scene.pick(position, HIT_PX, HIT_PX)
+  const pickedId =
+    picked && typeof picked === "object" && "id" in picked
+      ? entitySiteId(picked.id, sites, customSites)
+      : undefined
+  if (pickedId) {
+    return pickedId
+  }
+
+  let nearest: { id: string; dist: number } | undefined
+  const consider = (id: string, lat: number, lonEast: number) => {
+    const cartesian = Cartesian3.fromDegrees(
+      lonEastTo180(lonEast),
+      lat,
+      SITE_HEIGHT_M,
+    )
+    const win = SceneTransforms.worldToWindowCoordinates(viewer.scene, cartesian)
+    if (!win) {
+      return
+    }
+    const dist = Math.hypot(win.x - position.x, win.y - position.y)
+    if (dist > HIT_PX) {
+      return
+    }
+    if (!nearest || dist < nearest.dist) {
+      nearest = { id, dist }
+    }
+  }
+  for (const site of sites) {
+    consider(site.id, site.lat_deg, site.lon_east_deg)
+  }
+  for (const site of customSites) {
+    consider(site.id, site.lat_deg, site.lon_east_deg)
+  }
+  return nearest?.id
+}
+
 export const MarsGlobe = ({
   pick,
   sites,
@@ -272,6 +311,7 @@ export const MarsGlobe = ({
   onFail,
 }: MarsGlobeProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   const pickRef = useRef(pick)
   const sitesRef = useRef(sites)
   const customRef = useRef(customSites)
@@ -279,6 +319,96 @@ export const MarsGlobe = ({
   const onCustomAddRef = useRef(onCustomAdd)
   const onFailRef = useRef(onFail)
   const viewerRef = useRef<Viewer | null>(null)
+  const marksKeyRef = useRef("")
+  const [marks, setMarks] = useState<ScreenMark[]>([])
+
+  const publishMarks = () => {
+    const viewer = viewerRef.current
+    const overlay = overlayRef.current
+    if (!viewer || viewer.isDestroyed() || !overlay) {
+      return
+    }
+    const canvas = viewer.scene.canvas
+    const canvasBox = canvas.getBoundingClientRect()
+    const overlayBox = overlay.getBoundingClientRect()
+    const offsetX = canvasBox.left - overlayBox.left
+    const offsetY = canvasBox.top - overlayBox.top
+    const next: ScreenMark[] = []
+    const push = (
+      id: string,
+      name: string,
+      lat: number,
+      lonEast: number,
+      href: string,
+      fact: string,
+      role: NasaAreaRole | "custom",
+    ) => {
+      const cartesian = Cartesian3.fromDegrees(
+        lonEastTo180(lonEast),
+        lat,
+        SITE_HEIGHT_M,
+      )
+      const win = SceneTransforms.worldToWindowCoordinates(
+        viewer.scene,
+        cartesian,
+      )
+      if (!win) {
+        return
+      }
+      const x = win.x + offsetX
+      const y = win.y + offsetY
+      if (
+        x < -80 ||
+        y < -40 ||
+        x > overlay.clientWidth + 80 ||
+        y > overlay.clientHeight + 40
+      ) {
+        return
+      }
+      next.push({
+        id,
+        name,
+        x,
+        y,
+        href,
+        fact,
+        lat_deg: lat,
+        lon_east_deg: lonEast,
+        role,
+      })
+    }
+    for (const site of sitesRef.current) {
+      const area = NASA_AREA_BY_ID[site.id]
+      push(
+        site.id,
+        shortSiteName(site.name),
+        site.lat_deg,
+        site.lon_east_deg,
+        siteHref(site.id),
+        area?.source ?? site.why_it_matters,
+        area?.role ?? "shortlist",
+      )
+    }
+    for (const site of customRef.current) {
+      push(
+        site.id,
+        "Custom",
+        site.lat_deg,
+        site.lon_east_deg,
+        customSiteHref(site.lat_deg, site.lon_east_deg),
+        "Dropped with a long-press. Not a NASA ellipse.",
+        "custom",
+      )
+    }
+    const key = next
+      .map((mark) => `${mark.id}:${Math.round(mark.x)}:${Math.round(mark.y)}`)
+      .join("|")
+    if (key === marksKeyRef.current) {
+      return
+    }
+    marksKeyRef.current = key
+    setMarks(next)
+  }
 
   useEffect(() => {
     pickRef.current = pick
@@ -295,6 +425,7 @@ export const MarsGlobe = ({
       return
     }
     syncEntities(viewer, sites, customSites, pick)
+    publishMarks()
   }, [pick, sites, customSites])
 
   useEffect(() => {
@@ -416,6 +547,10 @@ export const MarsGlobe = ({
 
         viewerRef.current = viewer
         syncEntities(viewer, sitesRef.current, customRef.current, pickRef.current)
+        viewer.camera.percentageChanged = 0.01
+        viewer.camera.changed.addEventListener(publishMarks)
+        viewer.scene.postRender.addEventListener(publishMarks)
+        publishMarks()
 
         const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
         let pressTimer: number | undefined
@@ -435,11 +570,12 @@ export const MarsGlobe = ({
           if (!current || current.isDestroyed()) {
             return false
           }
-          const picked = current.scene.pick(position)
-          const pickedId =
-            picked && typeof picked === "object" && "id" in picked
-              ? entitySiteId(picked.id, sitesRef.current, customRef.current)
-              : undefined
+          const pickedId = siteAtScreen(
+            current,
+            position,
+            sitesRef.current,
+            customRef.current,
+          )
           if (!pickedId) {
             return false
           }
@@ -471,10 +607,30 @@ export const MarsGlobe = ({
           }
           didLongPress = false
           pressStart = Cartesian2.clone(down.position)
+          if (
+            siteAtScreen(
+              current,
+              down.position,
+              sitesRef.current,
+              customRef.current,
+            )
+          ) {
+            return
+          }
           pressTimer = window.setTimeout(() => {
             const start = pressStart
             pressTimer = undefined
             if (!start || current.isDestroyed()) {
+              return
+            }
+            if (
+              siteAtScreen(
+                current,
+                start,
+                sitesRef.current,
+                customRef.current,
+              )
+            ) {
               return
             }
             const at = pickLatLon(current, start)
@@ -532,7 +688,27 @@ export const MarsGlobe = ({
     }
   }, [])
 
-  return <div ref={containerRef} className="cesium-mars h-full w-full" />
+  return (
+    <div className="cesium-mars relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      <div ref={overlayRef} className="pointer-events-none fixed inset-0 z-20">
+        {marks.map((mark) => (
+          <SiteMark
+            key={mark.id}
+            href={mark.href}
+            name={mark.name}
+            lat_deg={mark.lat_deg}
+            lon_east_deg={mark.lon_east_deg}
+            fact={mark.fact}
+            role={mark.role}
+            selected={pick.siteId === mark.id}
+            className="absolute -translate-x-1/2 -translate-y-[calc(100%+6px)]"
+            style={{ left: mark.x, top: mark.y }}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 declare global {

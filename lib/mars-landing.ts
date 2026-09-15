@@ -26,7 +26,20 @@ export type CustomSite = {
 }
 
 export const isCustomSiteId = (siteId?: string) => {
-  return Boolean(siteId?.startsWith("custom-"))
+  return Boolean(siteId?.startsWith("custom-") || siteId === "custom")
+}
+
+export const customSiteHref = (lat_deg: number, lon_east_deg: number) => {
+  const lat = lat_deg.toFixed(4)
+  const lon = lon_east_deg.toFixed(4)
+  return `/site/custom?lat=${lat}&lon=${lon}`
+}
+
+export const siteHref = (siteId: string, lat_deg?: number, lon_east_deg?: number) => {
+  if (isCustomSiteId(siteId) && lat_deg != null && lon_east_deg != null) {
+    return customSiteHref(lat_deg, lon_east_deg)
+  }
+  return `/site/${siteId}`
 }
 
 export const makeCustomSite = (lat_deg: number, lon_east_deg: number): CustomSite => {
