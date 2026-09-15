@@ -106,3 +106,12 @@ Sol Zero Console is a ten-card walkthrough of pack numbers, with a LightGBM terr
 ## Licence
 
 Event build for GirlsWhoML × PhysicsX. Cite the upstream datasets before you reuse them.
+
+## Underground settlement, 3D section
+
+`public/underground-settlement/index.html` is a standalone Three.js page: a cyberpunk cut-away of the buried
+100-person habitat. It ports the `lib/site-physics.ts` rules into the page and draws the 20 mSv/year regolith
+cover, the 0.25 m SEP shelter, and the annual thermal skin depth as datum planes, so switching site
+(Jezero, Gale, Arsia, Hellas) moves the whole habitat ring up or down. Open it at
+[/underground-settlement/index.html](http://localhost:3000/underground-settlement/index.html) with `pnpm dev`,
+or double-click the file.
