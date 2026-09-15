@@ -30,30 +30,9 @@ export const SiteReport = ({
   )
 
   return (
-    <div className="mt-3 space-y-3 text-sm text-stone-300">
+    <div className="mt-2 space-y-1 text-sm text-stone-300">
       <p className="text-base font-medium text-stone-100">{copy.headline}</p>
-      <p>{copy.why}</p>
-      <p>
-        <span className="font-medium text-stone-100">Dirt. </span>
-        {copy.dirt}
-      </p>
-      <p>
-        <span className="font-medium text-stone-100">Caves. </span>
-        {copy.caves}
-      </p>
-      <p>
-        <span className="font-medium text-stone-100">Quakes. </span>
-        {copy.quakes}
-      </p>
-      <p>
-        <span className="font-medium text-stone-100">Wind. </span>
-        {copy.wind}
-      </p>
-      <p>
-        <span className="font-medium text-stone-100">Ice. </span>
-        {copy.ice}
-      </p>
-      <p className="text-xs text-stone-500">{copy.caveat}</p>
+      <p>{copy.detail}</p>
     </div>
   )
 }

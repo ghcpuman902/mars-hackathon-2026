@@ -135,8 +135,8 @@ export const SiteInspect = ({
         </h1>
       </header>
 
-      <aside className="pointer-events-none absolute bottom-0 left-0 z-30 w-full p-4 sm:max-w-md sm:p-6">
-        <div className="pointer-events-auto max-h-[60svh] overflow-y-auto rounded-lg bg-black/70 p-4 backdrop-blur-sm">
+      <aside className="pointer-events-none absolute bottom-0 left-0 z-30 w-full p-4 sm:max-w-sm sm:p-6">
+        <div className="pointer-events-auto rounded-lg bg-black/70 p-3 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-3">
             <p className="font-mono text-sm">
               {formatLatLon(lat_deg, lon_east_deg)}

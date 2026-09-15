@@ -74,6 +74,8 @@ export const MARS_CAVES: MarsCave[] = [
   },
 ]
 
+export const BEST_CAVE_ID = "annie"
+
 export const CAVES_CREDIT =
   "Cushing et al. 2007, THEMIS skylights on Arsia Mons. Diameters 100–252 m. Floors stay in shadow, so depth is a minimum."
 

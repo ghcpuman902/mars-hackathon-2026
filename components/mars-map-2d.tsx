@@ -4,8 +4,13 @@ import { useRef } from "react"
 import type { PointerEvent } from "react"
 
 import { SiteMark } from "@/components/site-mark"
-import { NASA_AREA_BY_ID } from "@/lib/nasa-areas"
-import { caveFact, caveDistanceDeg, MARS_CAVES } from "@/lib/mars-caves"
+import { BEST_SITE_ID, NASA_AREA_BY_ID } from "@/lib/nasa-areas"
+import {
+  BEST_CAVE_ID,
+  caveFact,
+  caveDistanceDeg,
+  MARS_CAVES,
+} from "@/lib/mars-caves"
 import {
   customSiteHref,
   latLonToUv,
@@ -131,6 +136,7 @@ export const MarsMap2D = ({
               lon_east_deg={site.lon_east_deg}
               fact={area?.source ?? site.why_it_matters}
               role={area?.role ?? "shortlist"}
+              recommended={site.id === BEST_SITE_ID}
               selected={pick.siteId === site.id}
             />
             <span
@@ -173,7 +179,8 @@ export const MarsMap2D = ({
             lon_east_deg={cave.lon_east_deg}
             fact={caveFact(cave)}
             role="cave_shelter"
-            compact
+            compact={cave.id !== BEST_CAVE_ID}
+            recommended={cave.id === BEST_CAVE_ID}
             selected={caveDistanceDeg(cave, pick.lat_deg, pick.lon_east_deg) < 0.08}
             className="absolute -translate-x-1/2 -translate-y-[calc(100%+0.35rem)]"
             style={{ left: `${uv.u * 100}%`, top: `${(1 - uv.v) * 100}%` }}

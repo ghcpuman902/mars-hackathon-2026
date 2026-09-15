@@ -6,7 +6,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 
 import { loadMola4ppd } from "@/lib/mola-heightmap"
 import { buildLocalTerrain, TERRAIN_CELLS } from "@/lib/local-terrain"
-import { CAVES_CREDIT, type MarsCave } from "@/lib/mars-caves"
+import type { MarsCave } from "@/lib/mars-caves"
 import { vikingTileUrl } from "@/lib/mars-landing"
 
 export type SiteTerrainProps = {
@@ -123,20 +123,36 @@ export const SiteTerrain = ({
 
       structureGroup = new THREE.Group()
       const habMat = new THREE.MeshStandardMaterial({
-        color: 0xf3e6cf,
-        emissive: 0x3a2c18,
-        emissiveIntensity: 0.28,
-        roughness: 0.42,
-        metalness: 0.08,
+        color: 0xd8c4a4,
+        emissive: 0x2a1e10,
+        emissiveIntensity: 0.16,
+        roughness: 0.5,
+        metalness: 0.06,
+      })
+      const hubMat = new THREE.MeshStandardMaterial({
+        color: 0xfff1cf,
+        emissive: 0x7a5a20,
+        emissiveIntensity: 0.55,
+        roughness: 0.32,
+        metalness: 0.1,
       })
       const roomMat = new THREE.MeshStandardMaterial({
-        color: 0x7de0c6,
-        emissive: 0x145246,
-        emissiveIntensity: 0.7,
-        roughness: 0.35,
-        metalness: 0.05,
+        color: 0x3f6f66,
+        emissive: 0x0a2a26,
+        emissiveIntensity: 0.25,
+        roughness: 0.45,
+        metalness: 0.04,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.4,
+      })
+      const bestRoomMat = new THREE.MeshStandardMaterial({
+        color: 0x9affea,
+        emissive: 0x1ee0b8,
+        emissiveIntensity: 1.1,
+        roughness: 0.28,
+        metalness: 0.08,
+        transparent: true,
+        opacity: 0.78,
       })
       const shaftMat = new THREE.MeshStandardMaterial({
         color: 0x9aefe0,
@@ -158,7 +174,7 @@ export const SiteTerrain = ({
       for (const box of terrain.habitat.boxes) {
         const building = new THREE.Mesh(
           new THREE.BoxGeometry(box.sx, box.sy, box.sz),
-          habMat,
+          box.kind === "hub" ? hubMat : habMat,
         )
         building.position.set(box.x, box.y, box.z)
         structureGroup.add(building)
@@ -167,7 +183,7 @@ export const SiteTerrain = ({
       for (const cave of terrain.caves) {
         const room = new THREE.Mesh(
           new THREE.SphereGeometry(cave.roomRM, 28, 18),
-          roomMat,
+          cave.best ? bestRoomMat : roomMat,
         )
         room.position.set(cave.x, cave.y - cave.depthM, cave.z)
         room.scale.set(1, 0.62, 1.15)
@@ -186,10 +202,10 @@ export const SiteTerrain = ({
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(cave.radiusM * 0.28, cave.radiusM * 0.85, 32),
           new THREE.MeshBasicMaterial({
-            color: 0xb8fff2,
+            color: cave.best ? 0xe8fff8 : 0x6a8f88,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.95,
+            opacity: cave.best ? 1 : 0.45,
           }),
         )
         ring.rotation.x = -Math.PI / 2
@@ -317,10 +333,10 @@ export const SiteTerrain = ({
         role="img"
         aria-label="Zoomed Mars terrain with a buried 100-person habitat. Drag to orbit. Scroll to zoom. The ground is faded so the rooms show through."
       />
-      <p className="pointer-events-none absolute bottom-3 left-3 max-w-sm text-xs text-stone-400">
-        Cream boxes are the 100-person rooms. The ground is faded so you can
-        see them.
-        {caves.length > 0 ? ` Teal is the published pit. ${CAVES_CREDIT}` : ""}
+      <p className="pointer-events-none absolute bottom-3 left-3 max-w-xs text-xs text-stone-400">
+        {caves.length > 0
+          ? "Bright teal is Annie, the best pit."
+          : "Bright box is the habitat hub."}
       </p>
     </div>
   )

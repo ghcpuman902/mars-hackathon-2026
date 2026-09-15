@@ -33,12 +33,17 @@ import { loadMola4ppd, sampleMolaBilinear } from "@/lib/mola-heightmap"
 import {
   caveDistanceDeg,
   caveEntityId,
+  BEST_CAVE_ID,
   caveFact,
   caveIdFromEntity,
   pinDistanceDeg,
   MARS_CAVES,
 } from "@/lib/mars-caves"
-import { NASA_AREA_BY_ID, type NasaAreaRole } from "@/lib/nasa-areas"
+import {
+  BEST_SITE_ID,
+  NASA_AREA_BY_ID,
+  type NasaAreaRole,
+} from "@/lib/nasa-areas"
 import {
   customSiteHref,
   lon180ToEast,
@@ -77,6 +82,7 @@ type ScreenMark = {
   lon_east_deg: number
   role: NasaAreaRole | "custom"
   compact?: boolean
+  recommended?: boolean
 }
 const VIKING_TILES =
   "https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg"
@@ -378,6 +384,8 @@ export const MarsGlobe = ({
         lat_deg: lat,
         lon_east_deg: lonEast,
         role,
+        recommended:
+          id === BEST_SITE_ID || id === caveEntityId(BEST_CAVE_ID),
       })
     }
     for (const site of sitesRef.current) {
@@ -423,7 +431,7 @@ export const MarsGlobe = ({
     )
     if (cavesClustered) {
       for (const mark of next) {
-        if (mark.role === "cave_shelter") {
+        if (mark.role === "cave_shelter" && !mark.recommended) {
           mark.compact = true
         }
       }
@@ -745,6 +753,7 @@ export const MarsGlobe = ({
             fact={mark.fact}
             role={mark.role}
             compact={mark.compact}
+            recommended={mark.recommended}
             selected={
               mark.role === "cave_shelter"
                 ? pinDistanceDeg(

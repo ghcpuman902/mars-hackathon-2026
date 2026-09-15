@@ -4,6 +4,8 @@ GirlsWhoML × PhysicsX, 15 Sept 2026. **Track A, Architecture.**
 
 Repo: [ghcpuman902/mars-hackathon-2026](https://github.com/ghcpuman902/mars-hackathon-2026)
 
+Live on main: [mars-hackathon-2026.vercel.app](https://mars-hackathon-2026.vercel.app)
+
 A first city of 100 people has 730 sols before resupply, and a dust storm from sol 180 to 260. The question we actually answer is small. How much dirt goes over your head, and where?
 
 ## What we built
@@ -51,7 +53,7 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Jezero's report lives at [/site/jezero](http://localhost:3000/site/jezero).
+Live: [mars-hackathon-2026.vercel.app](https://mars-hackathon-2026.vercel.app). Locally, open [http://localhost:3000](http://localhost:3000). Jezero's report lives at [/site/jezero](https://mars-hackathon-2026.vercel.app/site/jezero).
 
 1. Click a NASA label on the globe. Jezero is the flown-landing default.
 2. Read the report. Radiation cover, quake tier, wind load, thermal depth.

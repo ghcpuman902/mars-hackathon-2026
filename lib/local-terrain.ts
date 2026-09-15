@@ -1,5 +1,5 @@
 import { sampleMolaBilinear, type MolaGrid } from "@/lib/mola-heightmap"
-import type { MarsCave } from "@/lib/mars-caves"
+import { BEST_CAVE_ID, type MarsCave } from "@/lib/mars-caves"
 
 export const TERRAIN_CELLS = 192
 export const TERRAIN_SPAN_DEG = 2.2
@@ -41,6 +41,7 @@ export type CaveMarker = {
   radiusM: number
   depthM: number
   roomRM: number
+  best: boolean
 }
 
 export type HabitatBox = {
@@ -81,9 +82,11 @@ export const layoutHabitat = (
   let surface = surfaceY
   let bury = Math.max(spanM * 0.02, unit * 1.3)
   if (caves.length > 0) {
-    const home = caves.reduce((best, cave) =>
-      cave.roomRM > best.roomRM ? cave : best,
-    )
+    const home =
+      caves.find((cave) => cave.best) ??
+      caves.reduce((winner, cave) =>
+        cave.roomRM > winner.roomRM ? cave : winner,
+      )
     cx = home.x
     cz = home.z
     surface = home.y
@@ -309,6 +312,7 @@ export const buildLocalTerrain = (
       radiusM: Math.max(cave.diameter_m * 2.4, spanM * 0.01),
       depthM,
       roomRM: Math.max(cave.diameter_m * 7, spanM * 0.02),
+      best: cave.id === BEST_CAVE_ID,
     }
   })
 

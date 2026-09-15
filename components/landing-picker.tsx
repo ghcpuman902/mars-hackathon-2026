@@ -121,8 +121,8 @@ export const LandingPicker = () => {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-stone-500">
-            Click a label or teal cave pit to inspect. Long-press empty ground to add a site.
+          <p className="mt-2 text-[11px] text-stone-400">
+            Teal ring is the best pick: Arsia / Annie.
           </p>
         </div>
       </aside>
