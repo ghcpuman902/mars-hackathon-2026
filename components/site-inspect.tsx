@@ -12,10 +12,7 @@ import {
   type LandingPick,
   type LandingSite,
 } from "@/lib/mars-landing"
-import {
-  loadMola4ppd,
-  sampleMolaBilinear,
-} from "@/lib/mola-heightmap"
+import { loadMola4ppd, sampleMolaBilinear } from "@/lib/mola-heightmap"
 const SiteTerrain = dynamic(
   () => import("@/components/site-terrain").then((mod) => mod.SiteTerrain),
   {
@@ -25,7 +22,7 @@ const SiteTerrain = dynamic(
         Building terrain…
       </div>
     ),
-  },
+  }
 )
 
 export type SiteInspectProps = {
@@ -44,19 +41,19 @@ export const SiteInspect = ({
   const router = useRouter()
   const [site, setSite] = useState<LandingSite | undefined>(initialSite)
   const [elevationM, setElevationM] = useState<number | null>(
-    initialSite?.elevation_m ?? null,
+    initialSite?.elevation_m ?? null
   )
   const pick = useMemo<LandingPick>(
     () => ({ lat_deg, lon_east_deg, siteId }),
-    [lat_deg, lon_east_deg, siteId],
+    [lat_deg, lon_east_deg, siteId]
   )
   const nearbyCaves = useMemo(
     () => cavesNear(lat_deg, lon_east_deg, 4),
-    [lat_deg, lon_east_deg],
+    [lat_deg, lon_east_deg]
   )
   const namedCave = useMemo(
     () => nearestCave(lat_deg, lon_east_deg),
-    [lat_deg, lon_east_deg],
+    [lat_deg, lon_east_deg]
   )
   const reportSite = useMemo<LandingSite | undefined>(() => {
     if (!namedCave) {
@@ -135,8 +132,12 @@ export const SiteInspect = ({
         </h1>
       </header>
 
-      <aside className="pointer-events-none absolute bottom-0 left-0 z-30 w-full p-4 sm:max-w-sm sm:p-6">
-        <div className="pointer-events-auto rounded-lg bg-black/70 p-3 backdrop-blur-sm">
+      <aside className="pointer-events-none absolute bottom-0 left-0 z-30 w-full p-4 sm:max-w-md sm:p-6">
+        <div
+          className="pointer-events-auto max-h-[55vh] overflow-y-auto rounded-lg bg-black/70 p-3 backdrop-blur-sm"
+          tabIndex={0}
+          aria-label="Site report"
+        >
           <div className="flex items-start justify-between gap-3">
             <p className="font-mono text-sm">
               {formatLatLon(lat_deg, lon_east_deg)}

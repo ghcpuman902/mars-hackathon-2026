@@ -14,10 +14,7 @@ const metres = (value: number) => {
   return rounded.toFixed(1)
 }
 
-export const siteCopy = (
-  report: SitePhysics,
-  site?: LandingSite,
-): SiteCopy => {
+export const siteCopy = (report: SitePhysics, site?: LandingSite): SiteCopy => {
   if (report.cave.coversRadiation && report.cave.nearest) {
     return {
       headline: `Use ${report.cave.nearest.name}.`,
@@ -36,7 +33,9 @@ export const siteCopy = (
   const iceHint =
     site?.ice_0_1m != null && site.ice_0_1m >= 0.25
       ? " Ice in the first metre."
-      : ""
+      : site?.ice_1_5m != null && site.ice_1_5m >= 0.4
+        ? " Ice below a metre."
+        : ""
   return {
     headline: `Bury ${metres(buryM)} m.`,
     detail: `No cave roof here. Arsia / Annie is the better pick.${iceHint}`,
