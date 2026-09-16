@@ -137,11 +137,7 @@ export const LandingPicker = () => {
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-stone-400">
-            100 people · 730 sols · storm 180–260
-          </p>
-          <p className="mt-1 text-[11px] text-stone-400">
-            Teal ring is the best pick: Arsia / Annie. Open a pin for the storm
-            series and dig cost.
+            100 people · 730 sols · storm 180–260. Teal is Arsia / Annie.
           </p>
         </div>
       </aside>
