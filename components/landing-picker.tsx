@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { MarsMap2D } from "@/components/mars-map-2d"
 import type { MarsGlobeProps } from "@/components/mars-globe"
-import {
-  AREA_GROUPS,
-  NASA_SITE_IDS,
-  ROLE_DOT,
-} from "@/lib/nasa-areas"
+import { AREA_GROUPS, NASA_SITE_IDS, ROLE_DOT } from "@/lib/nasa-areas"
 import {
   JEZERO,
   customSiteHref,
@@ -25,14 +21,12 @@ export const LandingPicker = () => {
   const [sites, setSites] = useState<LandingSite[]>([])
   const [customSites, setCustomSites] = useState<CustomSite[]>([])
   const [pick, setPick] = useState<LandingPick>(JEZERO)
-  const [Globe, setGlobe] = useState<ComponentType<MarsGlobeProps> | null>(
-    null,
-  )
+  const [Globe, setGlobe] = useState<ComponentType<MarsGlobeProps> | null>(null)
   const [globeReady, setGlobeReady] = useState(false)
 
   const nasaSites = useMemo(
     () => sites.filter((site) => NASA_SITE_IDS.includes(site.id)),
-    [sites],
+    [sites]
   )
 
   const handleInspect = (next: LandingPick) => {
@@ -109,12 +103,7 @@ export const LandingPicker = () => {
           onCustomAdd={handleCustomAdd}
         />
         {Globe ? (
-          <div
-            className={cn(
-              "absolute inset-0",
-              !globeReady && "invisible",
-            )}
-          >
+          <div className={cn("absolute inset-0", !globeReady && "invisible")}>
             <Globe
               pick={pick}
               sites={nasaSites}
@@ -148,7 +137,7 @@ export const LandingPicker = () => {
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-stone-400">
-            Teal ring is the best pick: Arsia / Annie.
+            100 people · 730 sols · storm 180–260. Teal is Arsia / Annie.
           </p>
         </div>
       </aside>
