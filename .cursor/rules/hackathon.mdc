@@ -1,5 +1,7 @@
 ---
 description: Mars City Hackathon brief and global skills
+alwaysApply: false
+globs: docs/hackathon.md,docs/hackathon/**/*,docs/skills.md,LOCKS.md,AGENTS.md,app/**/*,components/**/*
 ---
 
 Before product work, read [docs/hackathon.md](docs/hackathon.md), [docs/hackathon/official-packs.md](docs/hackathon/official-packs.md), and [docs/skills.md](docs/skills.md). Shared scenario is 100 people, 730 sols, dust storm sols 180-260.

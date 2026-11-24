@@ -1,5 +1,7 @@
 ---
-alwaysApply: true
+alwaysApply: false
+description: Mars hackathon project stack, styling, Next docs, git habits
+globs: package.json,pnpm-lock.yaml,**/package.json,**/*.{ts,tsx,js,jsx,css,mdx},docs/**/*.md
 ---
 
 # Project stack
